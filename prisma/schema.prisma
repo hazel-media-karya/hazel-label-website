@@ -1,10 +1,10 @@
+cat > prisma/schema.prisma <<'EOF'
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model SiteSetting {
@@ -17,3 +17,4 @@ model SiteSetting {
 
   @@map("site_settings")
 }
+EOF
