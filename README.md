@@ -2,6 +2,19 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Temporary admin login
+
+This site includes a temporary admin authentication flow for the Hazel Label admin area.
+
+Set these Railway environment variables before deployment:
+
+```bash
+ADMIN_EMAIL=admin@hazellabel.com
+ADMIN_PASSWORD=your_secure_password
+```
+
+The admin login page is available at `/login`, and `/admin` is protected until a proper database-backed auth system is added later.
+
 First, run the development server:
 
 ```bash

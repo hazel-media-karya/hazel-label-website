@@ -8,11 +8,20 @@ export default function AdminPage() {
       <Header />
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-10">
         <section className="rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,_rgba(255,255,255,0.06),_rgba(255,255,255,0.02))] p-8 shadow-[0_0_80px_rgba(0,0,0,0.3)]">
-          <SectionTitle
-            eyebrow="Admin"
-            title="Future content management workspace"
-            description="This area is prepared for the next stage of Hazel Label administration, where site content, products, and order workflows can be managed centrally."
-          />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <SectionTitle
+                eyebrow="Admin"
+                title="Future content management workspace"
+                description="This area is prepared for the next stage of Hazel Label administration, where site content, products, and order workflows can be managed centrally."
+              />
+            </div>
+            <form action="/api/auth/logout" method="post">
+              <button type="submit" className="rounded-full border border-[#d8b36d]/30 bg-[#d8b36d]/10 px-4 py-2 text-sm font-semibold text-[#f1d7a2] transition hover:bg-[#d8b36d]/20">
+                Logout
+              </button>
+            </form>
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[
