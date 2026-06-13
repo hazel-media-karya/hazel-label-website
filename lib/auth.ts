@@ -1,5 +1,16 @@
 export const ADMIN_SESSION_COOKIE = "hazel_admin_session";
 
+export function resolveRequestUrl(request: { url: string; headers: Headers }): URL {
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ?? request.headers.get("x-forwarded-server")?.split(",")[0]?.trim() ?? request.headers.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    return new URL(`${forwardedProto}://${forwardedHost}`);
+  }
+
+  return new URL(request.url);
+}
+
 function getAdminSecret(): string {
   return `${process.env.ADMIN_EMAIL ?? ""}:${process.env.ADMIN_PASSWORD ?? ""}`;
 }
