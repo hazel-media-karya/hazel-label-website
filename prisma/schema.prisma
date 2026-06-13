@@ -1,6 +1,6 @@
-cat > prisma/schema.prisma <<'EOF'
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -17,4 +17,3 @@ model SiteSetting {
 
   @@map("site_settings")
 }
-EOF
