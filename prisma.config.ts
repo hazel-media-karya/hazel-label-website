@@ -1,3 +1,4 @@
+cat > prisma.config.ts <<'EOF'
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
@@ -10,3 +11,4 @@ export default defineConfig({
     url: env("DATABASE_URL"),
   },
 });
+EOF
