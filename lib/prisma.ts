@@ -1,4 +1,3 @@
-cat > lib/prisma.ts <<'EOF'
 import { PrismaClient } from "@/lib/generated/prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
