@@ -1,4 +1,3 @@
-cat > lib/site-settings.ts <<'EOF'
 import { prisma } from "@/lib/prisma";
 
 export const defaultSiteSettings = {
