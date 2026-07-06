@@ -1,4 +1,3 @@
-cat > components/admin/AdminSettingsForm.tsx <<'EOF'
 "use client";
 
 import { useEffect, useState } from "react";
