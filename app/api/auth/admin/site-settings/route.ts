@@ -11,13 +11,13 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: settings
+      data: settings,
     });
   } catch {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to load site settings"
+        message: "Failed to load site settings",
       },
       { status: 500 }
     );
@@ -35,22 +35,21 @@ export async function PUT(request: Request) {
       data: {
         header: body.header ?? current.header ?? defaultSiteSettings.header,
         hero: body.hero ?? current.hero ?? defaultSiteSettings.hero,
-        footer: body.footer ?? current.footer ?? defaultSiteSettings.footer
-      }
+        footer: body.footer ?? current.footer ?? defaultSiteSettings.footer,
+      },
     });
 
     return NextResponse.json({
       success: true,
-      data: updated
+      data: updated,
     });
   } catch {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to update site settings"
+        message: "Failed to update site settings",
       },
       { status: 500 }
     );
   }
 }
-EOF
