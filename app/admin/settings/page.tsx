@@ -1,4 +1,3 @@
-cat > app/admin/settings/page.tsx <<'EOF'
 import AdminSettingsForm from "@/components/admin/AdminSettingsForm";
 
 export const dynamic = "force-dynamic";
