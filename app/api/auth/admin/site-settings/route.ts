@@ -1,4 +1,4 @@
-cat > app/api/admin/site-settings/route.ts <<'EOF'
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { defaultSiteSettings, getSiteSettings } from "@/lib/site-settings";
