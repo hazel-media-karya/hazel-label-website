@@ -71,4 +71,3 @@ export async function getSiteSettings() {
 
   return settings;
 }
-EOF

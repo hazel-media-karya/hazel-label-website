@@ -151,4 +151,3 @@ function SettingsBlock({
     </section>
   );
 }
-EOF
