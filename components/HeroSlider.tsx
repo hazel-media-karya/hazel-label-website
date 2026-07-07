@@ -4,9 +4,48 @@ import Link from "next/link";
 import { useState } from "react";
 import { siteConfig } from "@/lib/site-config";
 
-export function HeroSlider() {
+type HeroSliderItem = (typeof siteConfig.heroSliderItems)[number];
+
+type HeroSettings = {
+  slides?: HeroSliderItem[];
+};
+
+function normalizeHeroSettings(settings?: unknown): HeroSettings {
+  if (!settings || typeof settings !== "object") {
+    return {};
+  }
+
+  const value = settings as {
+    slides?: unknown;
+  };
+
+  if (!Array.isArray(value.slides)) {
+    return {};
+  }
+
+  const slides = value.slides.filter(
+    (item) => item && typeof item === "object"
+  ) as HeroSliderItem[];
+
+  return {
+    slides,
+  };
+}
+
+export function HeroSlider({
+  settings,
+}: {
+  settings?: unknown;
+}) {
   const [activeSlide, setActiveSlide] = useState(0);
-  const slide = siteConfig.heroSliderItems[activeSlide];
+  const hero = normalizeHeroSettings(settings);
+  const heroSliderItems =
+    hero.slides && hero.slides.length > 0
+      ? hero.slides
+      : siteConfig.heroSliderItems;
+  const slide =
+    heroSliderItems[Math.min(activeSlide, heroSliderItems.length - 1)] ??
+    heroSliderItems[0];
 
   return (
     <section className="grid items-center gap-8 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(216,179,109,0.16),_transparent_42%),linear-gradient(135deg,_rgba(255,255,255,0.04),_rgba(255,255,255,0.01))] p-6 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-8">
@@ -101,13 +140,13 @@ export function HeroSlider() {
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-3">
-          <button type="button" onClick={() => setActiveSlide((prev) => (prev === 0 ? siteConfig.heroSliderItems.length - 1 : prev - 1))} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
+          <button type="button" onClick={() => setActiveSlide((prev) => (prev === 0 ? heroSliderItems.length - 1 : prev - 1))} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
             ←
           </button>
-          {siteConfig.heroSliderItems.map((item, index) => (
+          {heroSliderItems.map((item, index) => (
             <button key={item.title} type="button" onClick={() => setActiveSlide(index)} className={`h-2.5 w-2.5 rounded-full ${index === activeSlide ? "bg-[#d8b36d]" : "bg-white/20"}`} aria-label={`Go to slide ${index + 1}`} />
           ))}
-          <button type="button" onClick={() => setActiveSlide((prev) => (prev + 1) % siteConfig.heroSliderItems.length)} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
+          <button type="button" onClick={() => setActiveSlide((prev) => (prev + 1) % heroSliderItems.length)} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
             →
           </button>
         </div>
@@ -115,3 +154,5 @@ export function HeroSlider() {
     </section>
   );
 }
+
+export default HeroSlider;
