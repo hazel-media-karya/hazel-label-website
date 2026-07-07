@@ -1,4 +1,4 @@
-import { Header } from "@/components/Header";
+import HeaderRuntime from "@/components/HeaderRuntime";
 import { Footer } from "@/components/Footer";
 import { HeroSlider } from "@/components/HeroSlider";
 import { ProductCard } from "@/components/ProductCard";
@@ -36,7 +36,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-[#f8f2e8]">
-      <Header />
+      <HeaderRuntime />
 
       <main id="home" className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 sm:px-8 lg:px-10">
         <HeroSlider />
