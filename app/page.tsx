@@ -1,10 +1,11 @@
-import { Header } from "@/components/Header";
+import HeaderRuntime from "@/components/HeaderRuntime";
 import { Footer } from "@/components/Footer";
 import { HeroSlider } from "@/components/HeroSlider";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { siteConfig } from "@/lib/site-config";
-import { getSiteSettings } from "@/lib/site-settings";
+
+export const dynamic = "force-dynamic";
 
 const steps = [
   { title: "Register", text: "Set up your team or athlete profile in minutes." },
@@ -31,12 +32,11 @@ const testimonials = [
   },
 ];
 
-export default async function Home() {
-  const settings = await getSiteSettings();
+export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-[#f8f2e8]">
-      <Header settings={settings.header} />
+      <HeaderRuntime />
 
       <main id="home" className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 sm:px-8 lg:px-10">
         <HeroSlider />
