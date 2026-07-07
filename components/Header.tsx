@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/lib/site-config";
 
@@ -8,6 +9,7 @@ type HeaderNavItem = {
 
 type HeaderSettings = {
   logoText?: string;
+  tagline?: string;
   navItems?: HeaderNavItem[];
   ctaLabel?: string;
   ctaHref?: string;
@@ -28,7 +30,7 @@ export function Header({
 }) {
   const header = normalizeHeaderSettings(settings);
 
-  const logoText = header.logoText ?? siteConfig.brandName;
+  const tagline = header.tagline ?? "Custom Jersey Platform";
   const navItems = header.navItems ?? siteConfig.navigation;
   const ctaLabel = header.ctaLabel ?? siteConfig.ctaButtonText;
   const ctaHref = header.ctaHref ?? "/hazel-studio";
@@ -37,18 +39,24 @@ export function Header({
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030303]/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-8 lg:px-10">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-sm font-semibold text-white transition group-hover:border-white/30">
-            H
+          <div className="relative flex h-12 w-40 items-center">
+            <Image
+              src={siteConfig.logoPath}
+              alt={`${siteConfig.brandName} logo`}
+              width={160}
+              height={48}
+              priority
+              className="h-auto w-40 object-contain"
+            />
           </div>
 
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-white">
-              {logoText}
-            </p>
-            <p className="text-xs text-zinc-500">
-              Custom Jersey Platform
-            </p>
-          </div>
+          <span className="sr-only">
+            {siteConfig.brandName}
+          </span>
+
+          <p className="hidden text-xs text-zinc-500 sm:block">
+            {tagline}
+          </p>
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm text-zinc-300 md:flex">
