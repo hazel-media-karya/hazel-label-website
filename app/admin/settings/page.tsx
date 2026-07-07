@@ -1,9 +1,11 @@
+import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
+
 export const dynamic = "force-dynamic";
 
 export default function AdminSettingsPage() {
   return (
     <main className="min-h-screen bg-[#050509] px-6 py-10 text-white">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <p className="mb-2 text-sm uppercase tracking-[0.35em] text-zinc-500">
           Hazel Admin
         </p>
@@ -13,12 +15,10 @@ export default function AdminSettingsPage() {
         </h1>
 
         <p className="mb-8 max-w-2xl text-zinc-400">
-          Halaman pengaturan Header, Hero/Slider, dan Footer Hazel Apparel.
+          Data Header, Hero/Slider, dan Footer dibaca dari API Admin Settings Hazel Apparel.
         </p>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-zinc-300">
-          Admin Settings V1 route is ready.
-        </div>
+        <AdminSettingsPanel />
       </div>
     </main>
   );
