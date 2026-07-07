@@ -1,22 +1,29 @@
 import { NextResponse } from "next/server";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: "Site settings API is ready",
-    data: {
-      header: {
-        brand: "HAZEL APPAREL"
+  try {
+    const settings = await getSiteSettings();
+
+    return NextResponse.json({
+      success: true,
+      message: "Site settings loaded from database",
+      data: {
+        header: settings.header,
+        hero: settings.hero,
+        footer: settings.footer,
       },
-      hero: {
-        title: "Premium Custom Jersey & Apparel"
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to load site settings from database",
       },
-      footer: {
-        copyright: "© 2026 Hazel Apparel. All rights reserved."
-      }
-    }
-  });
+      { status: 500 }
+    );
+  }
 }
