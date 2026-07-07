@@ -15,10 +15,6 @@ type DatabaseHeroSlide = {
   description?: unknown;
 };
 
-type DatabaseHeroSettings = {
-  slides?: unknown;
-};
-
 function toText(value: unknown, fallback: string) {
   if (typeof value !== "string") {
     return fallback;
@@ -34,16 +30,19 @@ function buildSafeHeroSettings(rawHero: unknown): HeroSliderRuntimeSettings | un
     return undefined;
   }
 
-  const hero = rawHero as DatabaseHeroSettings;
+  const hero = rawHero as {
+    slides?: unknown;
+  };
 
   if (!Array.isArray(hero.slides) || hero.slides.length === 0) {
     return undefined;
   }
 
+  const databaseSlides = hero.slides as DatabaseHeroSlide[];
   const fallbackSlides = siteConfig.heroSliderItems;
 
   const slides = fallbackSlides.map((fallbackSlide, index) => {
-    const databaseSlide = hero.slides?.[index] as DatabaseHeroSlide | undefined;
+    const databaseSlide = databaseSlides[index];
 
     if (!databaseSlide || typeof databaseSlide !== "object") {
       return fallbackSlide;
