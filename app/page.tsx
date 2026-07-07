@@ -1,6 +1,6 @@
-import HeaderRuntime from "@/components/HeaderRuntime";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import HeroSliderRuntime from "@/components/HeroSliderRuntime";
+import { HeroSlider } from "@/components/HeroSlider";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { siteConfig } from "@/lib/site-config";
@@ -36,10 +36,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-[#f8f2e8]">
-      <HeaderRuntime />
+      <Header />
 
       <main id="home" className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 sm:px-8 lg:px-10">
-        <HeroSliderRuntime />
+        <HeroSlider />
 
         <section id="about" className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
           <SectionTitle
