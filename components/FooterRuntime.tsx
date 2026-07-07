@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { siteConfig } from "@/lib/site-config";
@@ -110,7 +111,7 @@ export default function FooterRuntime() {
   const brand = text(settings.brand, siteConfig.brandName || "HAZEL APPAREL");
   const description = text(
     settings.description,
-    "Premium custom jersey and apparel platform for teams, communities, events, and professional sportswear production."
+    "Luxury custom sportswear and premium apparel experiences crafted for modern teams and athletes."
   );
   const email = text(settings.email, "officialhazelapparel@gmail.com");
   const address = text(settings.address, "Indonesia");
@@ -131,28 +132,36 @@ export default function FooterRuntime() {
         ];
 
   return (
-    <footer className="border-t border-white/10 bg-black px-6 py-12 sm:px-8 lg:px-10">
-      <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+    <footer className="border-t border-white/10 bg-black px-6 py-14 sm:px-8 lg:px-10">
+      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.4fr_0.8fr_0.8fr]">
         <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
-            Hazel Apparel
-          </p>
+          <Link href="/" className="inline-flex">
+            <Image
+              src={siteConfig.logoPath}
+              alt={`${brand} logo`}
+              width={150}
+              height={54}
+              className="h-auto w-[150px] object-contain"
+            />
+          </Link>
 
-          <h2 className="mt-3 text-2xl font-semibold text-white">
-            {brand}
-          </h2>
-
-          <p className="mt-4 max-w-md text-sm leading-6 text-zinc-400">
+          <p className="mt-6 max-w-md text-sm leading-7 text-zinc-400">
             {description}
           </p>
+
+          <div className="mt-8 flex flex-wrap gap-5 text-sm text-zinc-400">
+            <span>{instagram}</span>
+            <span>LinkedIn</span>
+            <span>WhatsApp</span>
+          </div>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-white">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-[#d8b36d]">
             Navigation
           </h3>
 
-          <div className="mt-4 flex flex-col gap-3 text-sm text-zinc-400">
+          <div className="mt-5 flex flex-col gap-3 text-sm text-zinc-400">
             {links.map((item) => (
               <Link
                 key={`${item.label}-${item.href}`}
@@ -166,19 +175,18 @@ export default function FooterRuntime() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-white">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-[#d8b36d]">
             Contact
           </h3>
 
-          <div className="mt-4 space-y-3 text-sm text-zinc-400">
+          <div className="mt-5 space-y-3 text-sm text-zinc-400">
             <p>{email}</p>
-            <p>{instagram}</p>
             <p>{address}</p>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto mt-10 max-w-7xl border-t border-white/10 pt-6 text-sm text-zinc-500">
+      <div className="mx-auto mt-12 max-w-7xl border-t border-white/10 pt-6 text-sm text-zinc-500">
         {copyright}
       </div>
     </footer>
