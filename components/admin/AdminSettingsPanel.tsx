@@ -9,9 +9,15 @@ type SiteSettingsData = {
 };
 
 export default function AdminSettingsPanel() {
-  const [data, setData] = useState<SiteSettingsData | null>(null);
+  const [draft, setDraft] = useState({
+    header: "",
+    hero: "",
+    footer: "",
+  });
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     async function loadSettings() {
@@ -26,9 +32,15 @@ export default function AdminSettingsPanel() {
           throw new Error(json.message || "Failed to load settings");
         }
 
-        setData(json.data);
+        const data: SiteSettingsData = json.data;
+
+        setDraft({
+          header: JSON.stringify(data.header, null, 2),
+          hero: JSON.stringify(data.hero, null, 2),
+          footer: JSON.stringify(data.footer, null, 2),
+        });
       } catch {
-        setError("Gagal memuat site settings.");
+        setMessage("Gagal memuat site settings.");
       } finally {
         setLoading(false);
       }
@@ -36,6 +48,39 @@ export default function AdminSettingsPanel() {
 
     loadSettings();
   }, []);
+
+  async function saveSettings() {
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const payload = {
+        header: JSON.parse(draft.header),
+        hero: JSON.parse(draft.hero),
+        footer: JSON.parse(draft.footer),
+      };
+
+      const response = await fetch("/api/admin/site-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        throw new Error(json.message || "Failed to save settings");
+      }
+
+      setMessage("Settings berhasil disimpan.");
+    } catch {
+      setMessage("Gagal menyimpan. Pastikan format JSON valid.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -45,29 +90,71 @@ export default function AdminSettingsPanel() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-200">
-        {error}
-      </div>
-    );
-  }
-
   return (
-    <div className="grid gap-5 md:grid-cols-3">
-      <SettingsCard title="Header Settings" value={data?.header} />
-      <SettingsCard title="Hero / Slider Settings" value={data?.hero} />
-      <SettingsCard title="Footer Settings" value={data?.footer} />
+    <div className="space-y-6">
+      <div className="grid gap-5 lg:grid-cols-3">
+        <SettingsEditor
+          title="Header Settings"
+          value={draft.header}
+          onChange={(value) =>
+            setDraft((prev) => ({
+              ...prev,
+              header: value,
+            }))
+          }
+        />
+
+        <SettingsEditor
+          title="Hero / Slider Settings"
+          value={draft.hero}
+          onChange={(value) =>
+            setDraft((prev) => ({
+              ...prev,
+              hero: value,
+            }))
+          }
+        />
+
+        <SettingsEditor
+          title="Footer Settings"
+          value={draft.footer}
+          onChange={(value) =>
+            setDraft((prev) => ({
+              ...prev,
+              footer: value,
+            }))
+          }
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={saveSettings}
+          disabled={saving}
+          className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Settings"}
+        </button>
+
+        {message && (
+          <p className="text-sm text-zinc-300">
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
-function SettingsCard({
+function SettingsEditor({
   title,
   value,
+  onChange,
 }: {
   title: string;
-  value?: Record<string, unknown>;
+  value: string;
+  onChange: (value: string) => void;
 }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -75,9 +162,12 @@ function SettingsCard({
         {title}
       </h2>
 
-      <pre className="overflow-auto rounded-xl bg-black/50 p-4 text-sm text-zinc-300">
-        {JSON.stringify(value, null, 2)}
-      </pre>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        spellCheck={false}
+        className="min-h-[520px] w-full resize-y rounded-xl border border-white/10 bg-black/60 p-4 font-mono text-sm leading-6 text-zinc-100 outline-none transition focus:border-white/30"
+      />
     </section>
   );
 }
