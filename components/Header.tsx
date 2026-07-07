@@ -21,7 +21,7 @@ function normalizeHeaderSettings(settings?: unknown): HeaderSettings {
   return settings as HeaderSettings;
 }
 
-export default function Header({
+export function Header({
   settings,
 }: {
   settings?: unknown;
@@ -75,3 +75,5 @@ export default function Header({
     </header>
   );
 }
+
+export default Header;
