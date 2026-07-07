@@ -2,9 +2,69 @@
 
 import { useEffect, useState } from "react";
 import { HeroSlider } from "@/components/HeroSlider";
+import { siteConfig } from "@/lib/site-config";
+
+type HeroSliderItem = (typeof siteConfig.heroSliderItems)[number];
+
+type HeroSliderRuntimeSettings = {
+  slides: HeroSliderItem[];
+};
+
+type DatabaseHeroSlide = {
+  title?: unknown;
+  description?: unknown;
+};
+
+type DatabaseHeroSettings = {
+  slides?: unknown;
+};
+
+function toText(value: unknown, fallback: string) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function buildSafeHeroSettings(rawHero: unknown): HeroSliderRuntimeSettings | undefined {
+  if (!rawHero || typeof rawHero !== "object") {
+    return undefined;
+  }
+
+  const hero = rawHero as DatabaseHeroSettings;
+
+  if (!Array.isArray(hero.slides) || hero.slides.length === 0) {
+    return undefined;
+  }
+
+  const fallbackSlides = siteConfig.heroSliderItems;
+
+  const slides = fallbackSlides.map((fallbackSlide, index) => {
+    const databaseSlide = hero.slides?.[index] as DatabaseHeroSlide | undefined;
+
+    if (!databaseSlide || typeof databaseSlide !== "object") {
+      return fallbackSlide;
+    }
+
+    return {
+      ...fallbackSlide,
+      title: toText(databaseSlide.title, fallbackSlide.title),
+      description: toText(databaseSlide.description, fallbackSlide.description),
+    };
+  });
+
+  return {
+    slides,
+  };
+}
 
 export default function HeroSliderRuntime() {
-  const [settings, setSettings] = useState<unknown>(undefined);
+  const [settings, setSettings] = useState<HeroSliderRuntimeSettings | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     let active = true;
@@ -17,11 +77,17 @@ export default function HeroSliderRuntime() {
 
         const json = await response.json();
 
-        if (active && json.success && json.data?.hero) {
-          setSettings(json.data.hero);
+        if (!active || !json.success) {
+          return;
+        }
+
+        const safeSettings = buildSafeHeroSettings(json.data?.hero);
+
+        if (safeSettings) {
+          setSettings(safeSettings);
         }
       } catch {
-        // keep fallback hero slider from siteConfig
+        // fallback to static siteConfig hero slider
       }
     }
 

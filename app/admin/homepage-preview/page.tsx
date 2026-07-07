@@ -1,5 +1,5 @@
 import HeaderRuntime from "@/components/HeaderRuntime";
-import { HeroSlider } from "@/components/HeroSlider";
+import HeroSliderRuntime from "@/components/HeroSliderRuntime";
 import { Footer } from "@/components/Footer";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default function HomepagePreviewPage() {
       <HeaderRuntime />
 
       <main id="home" className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 sm:px-8 lg:px-10">
-        <HeroSlider />
+        <HeroSliderRuntime />
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-8">
           <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">
