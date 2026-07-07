@@ -51,7 +51,6 @@ function buildSafeHeroSettings(rawHero: unknown): HeroSliderRuntimeSettings | un
     return {
       ...fallbackSlide,
       title: toText(databaseSlide.title, fallbackSlide.title),
-      description: toText(databaseSlide.description, fallbackSlide.description),
     };
   });
 
