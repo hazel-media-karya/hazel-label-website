@@ -1,6 +1,6 @@
 import HeaderRuntime from "@/components/HeaderRuntime";
 import HeroSliderRuntime from "@/components/HeroSliderRuntime";
-import { Footer } from "@/components/Footer";
+import FooterRuntime from "@/components/FooterRuntime";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default function HomepagePreviewPage() {
         </section>
       </main>
 
-      <Footer />
+      <FooterRuntime />
     </div>
   );
 }
