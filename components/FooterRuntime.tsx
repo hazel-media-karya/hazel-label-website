@@ -19,12 +19,51 @@ type FooterSettings = {
   links?: FooterLink[];
 };
 
+function text(value: unknown, fallback: string) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function normalizeLinks(value: unknown): FooterLink[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const links = value
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const link = item as {
+        label?: unknown;
+        href?: unknown;
+      };
+
+      if (typeof link.label !== "string" || typeof link.href !== "string") {
+        return null;
+      }
+
+      return {
+        label: link.label,
+        href: link.href,
+      };
+    })
+    .filter(Boolean) as FooterLink[];
+
+  return links.length > 0 ? links : undefined;
+}
+
 function normalizeFooterSettings(rawFooter: unknown): FooterSettings {
   if (!rawFooter || typeof rawFooter !== "object") {
     return {};
   }
 
-  const footer = rawFooter as FooterSettings;
+  const footer = rawFooter as Record<string, unknown>;
 
   return {
     brand: typeof footer.brand === "string" ? footer.brand : undefined,
@@ -33,7 +72,7 @@ function normalizeFooterSettings(rawFooter: unknown): FooterSettings {
     copyright: typeof footer.copyright === "string" ? footer.copyright : undefined,
     instagram: typeof footer.instagram === "string" ? footer.instagram : undefined,
     description: typeof footer.description === "string" ? footer.description : undefined,
-    links: Array.isArray(footer.links) ? footer.links : undefined,
+    links: normalizeLinks(footer.links),
   };
 }
 
@@ -68,15 +107,18 @@ export default function FooterRuntime() {
     };
   }, []);
 
-  const brand = settings.brand || siteConfig.brandName || "HAZEL APPAREL";
-  const description =
-    settings.description ||
-    "Premium custom jersey and apparel platform for teams, communities, events, and professional sportswear production.";
-  const email = settings.email || "officialhazelapparel@gmail.com";
-  const address = settings.address || "Indonesia";
-  const instagram = settings.instagram || "@officialhazelapparel";
-  const copyright =
-    settings.copyright || `© 2026 ${brand}. All rights reserved.`;
+  const brand = text(settings.brand, siteConfig.brandName || "HAZEL APPAREL");
+  const description = text(
+    settings.description,
+    "Premium custom jersey and apparel platform for teams, communities, events, and professional sportswear production."
+  );
+  const email = text(settings.email, "officialhazelapparel@gmail.com");
+  const address = text(settings.address, "Indonesia");
+  const instagram = text(settings.instagram, "@officialhazelapparel");
+  const copyright = text(
+    settings.copyright,
+    `© 2026 ${brand}. All rights reserved.`
+  );
 
   const links =
     settings.links && settings.links.length > 0
