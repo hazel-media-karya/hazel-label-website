@@ -45,6 +45,7 @@ function labelClass() {
 export default function AdminProductsForm() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductForm>(defaultForm);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -70,6 +71,49 @@ export default function AdminProductsForm() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  async function updateProduct() {
+    if (!editingProductId) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: editingProductId,
+          name: form.name,
+          category: form.category,
+          description: form.description,
+          priceFrom: Number(form.priceFrom || 0),
+          imageUrl: form.imageUrl,
+          isActive: form.isActive,
+          sortOrder: Number(form.sortOrder || 0),
+        }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error("Update failed");
+      }
+
+      setMessage("Produk berhasil diperbarui.");
+      setEditingProductId(null);
+      setForm(defaultForm);
+      await loadProducts();
+    } catch {
+      setMessage("Gagal memperbarui produk.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function deleteProduct(id: string) {
     const confirmed = window.confirm("Hapus produk ini?");
@@ -100,6 +144,26 @@ export default function AdminProductsForm() {
     } catch {
       setMessage("Gagal menghapus produk.");
     }
+  }
+
+  function startEdit(product: Product) {
+    setEditingProductId(product.id);
+    setMessage("");
+
+    setForm({
+      name: product.name,
+      category: product.category,
+      description: product.description,
+      priceFrom: String(product.priceFrom),
+      imageUrl: product.imageUrl ?? "",
+      isActive: product.isActive,
+      sortOrder: String(product.sortOrder),
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
   async function createProduct() {
@@ -266,11 +330,11 @@ export default function AdminProductsForm() {
         <div className="mt-7 flex justify-end">
           <button
             type="button"
-            onClick={createProduct}
+            onClick={editingProductId ? updateProduct : createProduct}
             disabled={saving || !form.name.trim()}
             className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? "Saving..." : "Add Product"}
+            {saving ? "Saving..." : editingProductId ? "Update Product" : "Add Product"}
           </button>
         </div>
       </section>
