@@ -128,6 +128,40 @@ export default function AdminOrdersPanel() {
     }
   }
 
+  async function deleteInquiry(id: string) {
+    const confirmed = window.confirm(
+      "Hapus inquiry ini? Data yang dihapus tidak bisa dikembalikan."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/inquiries", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+        }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error("Delete failed");
+      }
+
+      await loadInquiries();
+    } catch {
+      setMessage("Gagal menghapus inquiry.");
+    }
+  }
+
   useEffect(() => {
     loadInquiries();
   }, []);
@@ -227,6 +261,14 @@ export default function AdminOrdersPanel() {
                   Chat WhatsApp
                 </a>
               ) : null}
+
+              <button
+                type="button"
+                onClick={() => deleteInquiry(inquiry.id)}
+                className="rounded-full border border-red-500/30 px-4 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10"
+              >
+                Delete
+              </button>
 
               <button
                 type="button"
