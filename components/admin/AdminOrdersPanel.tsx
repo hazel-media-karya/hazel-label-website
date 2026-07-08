@@ -101,6 +101,33 @@ export default function AdminOrdersPanel() {
     }
   }
 
+  async function updateInquiryStatus(id: string, status: string) {
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/inquiries", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          status,
+        }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error("Update failed");
+      }
+
+      await loadInquiries();
+    } catch {
+      setMessage("Gagal memperbarui status inquiry.");
+    }
+  }
+
   useEffect(() => {
     loadInquiries();
   }, []);
@@ -158,6 +185,36 @@ export default function AdminOrdersPanel() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {inquiry.status !== "CONTACTED" ? (
+                <button
+                  type="button"
+                  onClick={() => updateInquiryStatus(inquiry.id, "CONTACTED")}
+                  className="rounded-full border border-sky-400/30 px-4 py-2 text-xs font-medium text-sky-300 transition hover:bg-sky-400/10"
+                >
+                  Mark Contacted
+                </button>
+              ) : null}
+
+              {inquiry.status !== "DONE" ? (
+                <button
+                  type="button"
+                  onClick={() => updateInquiryStatus(inquiry.id, "DONE")}
+                  className="rounded-full border border-emerald-400/30 px-4 py-2 text-xs font-medium text-emerald-300 transition hover:bg-emerald-400/10"
+                >
+                  Mark Done
+                </button>
+              ) : null}
+
+              {inquiry.status !== "NEW" ? (
+                <button
+                  type="button"
+                  onClick={() => updateInquiryStatus(inquiry.id, "NEW")}
+                  className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-white/10"
+                >
+                  Reset New
+                </button>
+              ) : null}
+
               {normalizeWhatsAppNumber(inquiry.whatsapp) ? (
                 <a
                   href={`https://wa.me/${normalizeWhatsAppNumber(
