@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/lib/site-config";
@@ -34,6 +37,7 @@ export function Header({
   const navItems = header.navItems ?? siteConfig.navigation;
   const ctaLabel = header.ctaLabel ?? siteConfig.ctaButtonText;
   const ctaHref = header.ctaHref ?? "/hazel-studio";
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030303]/85 backdrop-blur-xl">
