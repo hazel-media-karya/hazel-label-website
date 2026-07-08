@@ -28,6 +28,7 @@ export default function ContactRuntime() {
   const [email, setEmail] = useState("");
   const [project, setProject] = useState("");
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (productTitle) {
@@ -36,12 +37,37 @@ export default function ContactRuntime() {
     }
   }, [productTitle]);
 
-  function sendInquiry() {
+  async function sendInquiry() {
     const whatsappNumber = process.env.NEXT_PUBLIC_HAZEL_WHATSAPP_NUMBER;
 
     if (!whatsappNumber) {
       alert("Nomor WhatsApp Hazel belum diset di Railway Variables.");
       return;
+    }
+
+    setSending(true);
+
+    const finalMessage =
+      message || `Halo Hazel Apparel, saya tertarik order produk ${project || "custom apparel"}.`;
+
+    try {
+      await fetch("/api/admin/inquiries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name || "Customer",
+          email,
+          whatsapp: "",
+          productName: project,
+          productSlug,
+          message: finalMessage,
+          source: "contact_form",
+        }),
+      });
+    } catch {
+      // WhatsApp tetap dibuka walaupun penyimpanan database gagal.
     }
 
     const text = encodeURIComponent(
@@ -53,10 +79,11 @@ export default function ContactRuntime() {
         `Produk/Project: ${project || "-"}`,
         "",
         "Pesan:",
-        message || "-",
+        finalMessage,
       ].join("\n")
     );
 
+    setSending(false);
     window.open(`https://wa.me/${whatsappNumber}?text=${text}`, "_blank");
   }
 
@@ -142,9 +169,10 @@ export default function ContactRuntime() {
           <button
             type="button"
             onClick={sendInquiry}
-            className="mt-7 rounded-full bg-[#d8b36d] px-7 py-3 text-sm font-semibold text-black transition hover:bg-[#f1d79b]"
+            disabled={sending}
+            className="mt-7 rounded-full bg-[#d8b36d] px-7 py-3 text-sm font-semibold text-black transition hover:bg-[#f1d79b] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send Inquiry
+            {sending ? "Sending..." : "Send via WhatsApp"}
           </button>
         </div>
       </div>
