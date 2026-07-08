@@ -146,6 +146,48 @@ export default function AdminProductsForm() {
     }
   }
 
+  function handleImageUpload(event: { target: HTMLInputElement }) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("File harus berupa gambar.");
+      return;
+    }
+
+    const maxSizeMb = 2;
+    const maxSizeBytes = maxSizeMb * 1024 * 1024;
+
+    if (file.size > maxSizeBytes) {
+      setMessage(`Ukuran gambar maksimal ${maxSizeMb}MB.`);
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setForm((current) => ({
+          ...current,
+          imageUrl: reader.result as string,
+        }));
+        setMessage("Gambar berhasil dipilih. Klik Add/Update Product untuk menyimpan.");
+      }
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    setForm((current) => ({
+      ...current,
+      imageUrl: "",
+    }));
+  }
+
   function startEdit(product: Product) {
     setEditingProductId(product.id);
     setMessage("");
@@ -265,17 +307,33 @@ export default function AdminProductsForm() {
             />
           </label>
 
-          <label className={`${labelClass()} md:col-span-2`}>
-            Image URL
-            <input
-              value={form.imageUrl}
-              onChange={(event) =>
-                setForm({ ...form, imageUrl: event.target.value })
-              }
-              className={inputClass()}
-              placeholder="/products/cycling-jersey.png"
-            />
-          </label>
+          <div className="md:col-span-2">
+            <p className={labelClass()}>Product Image</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <label className="cursor-pointer rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200">
+                Upload Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+          
+              {form.imageUrl.trim() ? (
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="rounded-full border border-red-500/30 px-5 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
+                >
+                  Remove Image
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-3 text-xs text-zinc-500">
+              Format gambar JPG/PNG/WebP. Maksimal 2MB.
+            </p>
+          </div>
 
           {form.imageUrl.trim() ? (
             <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/40 p-4">
