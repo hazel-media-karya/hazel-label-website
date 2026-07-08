@@ -404,6 +404,14 @@ export default function AdminProductsForm() {
                     <td className="px-4 py-4 text-right">
                       <button
                         type="button"
+                        onClick={() => startEdit(product)}
+                        className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-zinc-200 transition hover:bg-white/10"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => deleteProduct(product.id)}
                         className="rounded-full border border-red-500/30 px-4 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10"
                       >
