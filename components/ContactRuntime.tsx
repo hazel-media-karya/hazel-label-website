@@ -37,23 +37,29 @@ export default function ContactRuntime() {
   }, [productTitle]);
 
   function sendInquiry() {
-    const subject = encodeURIComponent(
-      project ? `Inquiry Hazel Apparel - ${project}` : "Inquiry Hazel Apparel"
-    );
+    const whatsappNumber = process.env.NEXT_PUBLIC_HAZEL_WHATSAPP_NUMBER;
 
-    const body = encodeURIComponent(
+    if (!whatsappNumber) {
+      alert("Nomor WhatsApp Hazel belum diset di Railway Variables.");
+      return;
+    }
+
+    const text = encodeURIComponent(
       [
-        `Name: ${name}`,
-        `Email: ${email}`,
-        `Project: ${project}`,
+        "Halo Hazel Apparel, saya ingin konsultasi/order custom apparel.",
         "",
-        "Message:",
-        message,
+        `Nama: ${name || "-"}`,
+        `Email: ${email || "-"}`,
+        `Produk/Project: ${project || "-"}`,
+        "",
+        "Pesan:",
+        message || "-",
       ].join("\n")
     );
 
-    window.location.href = `mailto:officialhazelapparel@gmail.com?subject=${subject}&body=${body}`;
+    window.open(`https://wa.me/${whatsappNumber}?text=${text}`, "_blank");
   }
+
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-20 sm:px-8 lg:px-10">
