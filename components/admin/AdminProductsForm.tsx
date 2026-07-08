@@ -71,6 +71,37 @@ export default function AdminProductsForm() {
     loadProducts();
   }, []);
 
+  async function deleteProduct(id: string) {
+    const confirmed = window.confirm("Hapus produk ini?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error("Delete failed");
+      }
+
+      setMessage("Produk berhasil dihapus.");
+      await loadProducts();
+    } catch {
+      setMessage("Gagal menghapus produk.");
+    }
+  }
+
   async function createProduct() {
     setSaving(true);
     setMessage("");
@@ -245,6 +276,7 @@ export default function AdminProductsForm() {
                   <th className="px-4 py-3 font-medium">Category</th>
                   <th className="px-4 py-3 font-medium">Price From</th>
                   <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium text-right">Action</th>
                 </tr>
               </thead>
 
@@ -267,6 +299,15 @@ export default function AdminProductsForm() {
                       <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300">
                         {product.isActive ? "Active" : "Inactive"}
                       </span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => deleteProduct(product.id)}
+                        className="rounded-full border border-red-500/30 px-4 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
