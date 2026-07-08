@@ -26,6 +26,7 @@ export default function ContactRuntime() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [project, setProject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -59,7 +60,7 @@ export default function ContactRuntime() {
         body: JSON.stringify({
           name: name || "Customer",
           email,
-          whatsapp: "",
+          whatsapp,
           productName: project,
           productSlug,
           message: finalMessage,
@@ -76,6 +77,7 @@ export default function ContactRuntime() {
         "",
         `Nama: ${name || "-"}`,
         `Email: ${email || "-"}`,
+        `WhatsApp: ${whatsapp || "-"}`,
         `Produk/Project: ${project || "-"}`,
         "",
         "Pesan:",
@@ -142,6 +144,16 @@ export default function ContactRuntime() {
                 onChange={(event) => setEmail(event.target.value)}
                 className={inputClass()}
                 placeholder="you@example.com"
+              />
+            </label>
+
+            <label className={`${labelClass()} md:col-span-2`}>
+              WhatsApp Number
+              <input
+                value={whatsapp}
+                onChange={(event) => setWhatsapp(event.target.value)}
+                className={inputClass()}
+                placeholder="Contoh: 6281234567890"
               />
             </label>
 
