@@ -112,3 +112,48 @@ export async function POST(request: Request) {
     await prisma.$disconnect();
   }
 }
+
+
+export async function PATCH(request: Request) {
+  const prisma = getPrisma();
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const id = text(body.id);
+    const status = text(body.status, "NEW");
+
+    const allowedStatuses = ["NEW", "CONTACTED", "DONE"];
+
+    if (!id || !allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Valid inquiry id and status are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const inquiry = await prisma.inquiry.update({
+      where: { id },
+      data: { status },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: inquiry,
+      message: "Inquiry status updated.",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update inquiry status.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
