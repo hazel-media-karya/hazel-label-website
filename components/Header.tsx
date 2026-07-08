@@ -30,7 +30,7 @@ export function Header({ settings }: { settings?: unknown }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const header = normalizeHeaderSettings(settings);
-  const tagline = header.tagline ?? siteConfig.tagline;
+  const tagline = header.tagline ?? "Premium Custom Jersey & Apparel";
   const navItems = header.navItems ?? siteConfig.navigation;
   const ctaLabel = header.ctaLabel ?? siteConfig.ctaButtonText;
   const ctaHref = header.ctaHref ?? "/hazel-studio";
