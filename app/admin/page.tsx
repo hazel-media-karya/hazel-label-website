@@ -23,7 +23,7 @@ const adminMenus = [
     title: "Orders / Inquiries",
     description: "Kelola pesan order, inquiry WhatsApp, status follow-up, dan calon customer.",
     href: "/admin/orders",
-    status: "Next",
+    status: "Ready",
   },
   {
     title: "Customers",
