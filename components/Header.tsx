@@ -77,7 +77,7 @@ export function Header({ settings }: { settings?: unknown }) {
             type="button"
             onClick={() => setMenuOpen((current) => !current)}
             aria-label="Open menu"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/30 hover:bg-white hover:text-black"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/30 hover:bg-white hover:text-black md:hidden"
           >
             <span className="flex flex-col gap-1.5">
               <span className="block h-0.5 w-5 bg-current" />
@@ -87,7 +87,7 @@ export function Header({ settings }: { settings?: unknown }) {
           </button>
 
           {menuOpen ? (
-            <div className="absolute right-0 top-14 z-50 w-64 overflow-hidden rounded-2xl border border-white/10 bg-black/95 p-2 shadow-2xl shadow-black/60 backdrop-blur">
+            <div className="absolute right-0 top-14 z-50 w-64 overflow-hidden rounded-2xl border border-white/10 bg-black/95 p-2 shadow-2xl shadow-black/60 backdrop-blur md:hidden">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
