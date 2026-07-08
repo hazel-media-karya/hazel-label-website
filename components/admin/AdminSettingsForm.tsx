@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
+import { siteConfig } from "@/lib/site-config";
 
 type LinkItem = {
   label: string;
@@ -353,16 +355,21 @@ export function AdminSettingsForm() {
             />
           </label>
 
-          <label className={labelClass()}>
-            Logo Text
-            <input
-              value={header.logoText}
-              onChange={(event) =>
-                setHeader({ ...header, logoText: event.target.value })
-              }
-              className={inputClass()}
-            />
-          </label>
+          <div>
+            <p className={labelClass()}>Logo Header</p>
+            <div className="mt-2 flex min-h-[52px] items-center rounded-xl border border-white/10 bg-black/60 px-4">
+              <Image
+                src={siteConfig.logoPath}
+                alt="Hazel Apparel logo"
+                width={150}
+                height={52}
+                className="h-auto w-[150px] object-contain"
+              />
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              Logo memakai file resmi Hazel Apparel dan tidak diedit dari form ini.
+            </p>
+          </div>
         </div>
 
         <div className="mt-8">
