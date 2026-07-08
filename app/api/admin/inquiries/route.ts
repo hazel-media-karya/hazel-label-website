@@ -157,3 +157,42 @@ export async function PATCH(request: Request) {
     await prisma.$disconnect();
   }
 }
+
+
+export async function DELETE(request: Request) {
+  const prisma = getPrisma();
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+    const id = text(body.id);
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Inquiry id is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.inquiry.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Inquiry deleted.",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to delete inquiry.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
