@@ -213,6 +213,26 @@ export default function AdminProductsForm() {
             />
           </label>
 
+          {form.imageUrl.trim() ? (
+            <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/40 p-4">
+              <p className="text-xs uppercase tracking-[0.25em] text-[#d8b36d]">
+                Image Preview
+              </p>
+
+              <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black">
+                <img
+                  src={form.imageUrl.trim()}
+                  alt="Product preview"
+                  className="h-64 w-full object-cover"
+                />
+              </div>
+
+              <p className="mt-3 text-xs text-zinc-500">
+                Preview muncul jika Image URL valid.
+              </p>
+            </div>
+          ) : null}
+
           <label className={`${labelClass()} md:col-span-2`}>
             Description
             <textarea
@@ -272,6 +292,7 @@ export default function AdminProductsForm() {
             <table className="w-full text-left text-sm">
               <thead className="bg-white/[0.05] text-zinc-400">
                 <tr>
+                  <th className="px-4 py-3 font-medium">Image</th>
                   <th className="px-4 py-3 font-medium">Product</th>
                   <th className="px-4 py-3 font-medium">Category</th>
                   <th className="px-4 py-3 font-medium">Price From</th>
@@ -283,6 +304,22 @@ export default function AdminProductsForm() {
               <tbody className="divide-y divide-white/10">
                 {products.map((product) => (
                   <tr key={product.id}>
+                    <td className="px-4 py-4">
+                      <div className="flex h-14 w-20 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black">
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+                            No Image
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
                     <td className="px-4 py-4">
                       <p className="font-medium text-white">{product.name}</p>
                       <p className="mt-1 text-xs text-zinc-500">
