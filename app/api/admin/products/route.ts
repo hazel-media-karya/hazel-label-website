@@ -167,3 +167,42 @@ export async function POST(request: Request) {
     await prisma.$disconnect();
   }
 }
+
+
+export async function DELETE(request: Request) {
+  const prisma = getPrisma();
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+    const id = text(body.id);
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Product id is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.product.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Product deleted.",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to delete product.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
