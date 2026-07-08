@@ -14,16 +14,6 @@ type Product = {
 };
 
 function getOrderLink(product: Product) {
-  const message = encodeURIComponent(
-    `Halo Hazel Apparel, saya tertarik order produk ${product.name}.`
-  );
-
-  const whatsappNumber = process.env.NEXT_PUBLIC_HAZEL_WHATSAPP_NUMBER;
-
-  if (whatsappNumber) {
-    return `https://wa.me/${whatsappNumber}?text=${message}`;
-  }
-
   return `/contact?product=${encodeURIComponent(product.slug)}`;
 }
 
@@ -122,8 +112,6 @@ export default function ProductsRuntime() {
 
               <a
                 href={getOrderLink(product)}
-                target={getOrderLink(product).startsWith("https://wa.me") ? "_blank" : undefined}
-                rel={getOrderLink(product).startsWith("https://wa.me") ? "noreferrer" : undefined}
                 className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-white transition hover:border-white/25 hover:bg-white hover:text-black"
               >
                 Order
