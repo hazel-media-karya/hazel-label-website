@@ -9,7 +9,9 @@ const globalForPrisma = globalThis as unknown as {
 
 const prisma =
   globalForPrisma.productAdminPrisma ??
-  new PrismaClient();
+  new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL,
+  });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.productAdminPrisma = prisma;
