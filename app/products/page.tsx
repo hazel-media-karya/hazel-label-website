@@ -1,6 +1,7 @@
 import HeaderRuntime from "@/components/HeaderRuntime";
 import FooterRuntime from "@/components/FooterRuntime";
 import ProductsRuntime from "@/components/ProductsRuntime";
+import ProductsHeroImage from "@/components/ProductsHeroImage";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export default function ProductsPage() {
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                <ProductsHeroImage />
+
                 <p className="text-sm leading-7 text-zinc-300">
                   Semua produk dapat dikustom sesuai kebutuhan tim: warna,
                   logo, identitas komunitas, sponsor, dan konsep visual.
