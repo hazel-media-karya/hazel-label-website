@@ -75,7 +75,7 @@ export function Header({
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="relative flex items-center gap-3">
           <Link
             href={ctaHref}
             className="rounded-full border border-white/15 px-5 py-2 text-sm font-medium text-white transition hover:border-white/30 hover:bg-white hover:text-black"
