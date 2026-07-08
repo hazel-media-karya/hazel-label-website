@@ -1,5 +1,5 @@
 import HeaderRuntime from "@/components/HeaderRuntime";
-import { Footer } from "@/components/Footer";
+import FooterRuntime from "@/components/FooterRuntime";
 import HeroSliderRuntime from "@/components/HeroSliderRuntime";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionTitle } from "@/components/SectionTitle";
@@ -147,7 +147,7 @@ export default function Home() {
         </section>
       </main>
 
-      <Footer />
+      <FooterRuntime />
     </div>
   );
 }
