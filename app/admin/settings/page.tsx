@@ -1,4 +1,4 @@
-import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
+import AdminSettingsForm from "@/components/admin/AdminSettingsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export default function AdminSettingsPage() {
           Data Header, Hero/Slider, dan Footer dibaca dari API Admin Settings Hazel Apparel.
         </p>
 
-        <AdminSettingsPanel />
+        <AdminSettingsForm />
       </div>
     </main>
   );
