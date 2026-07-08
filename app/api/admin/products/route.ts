@@ -63,7 +63,8 @@ function slugify(value: string) {
 
 async function makeUniqueSlug(
   prisma: PrismaClient,
-  baseSlug: string
+  baseSlug: string,
+  currentId?: string
 ) {
   let slug = baseSlug;
   let counter = 2;
@@ -73,7 +74,7 @@ async function makeUniqueSlug(
       where: { slug },
     });
 
-    if (!existing) {
+    if (!existing || existing.id === currentId) {
       return slug;
     }
 
@@ -168,6 +169,68 @@ export async function POST(request: Request) {
   }
 }
 
+
+
+
+export async function PUT(request: Request) {
+  const prisma = getPrisma();
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const id = text(body.id);
+    const name = text(body.name);
+    const category = text(body.category, "Custom Jersey");
+    const description = text(body.description);
+    const priceFrom = Math.max(0, Math.round(numberValue(body.priceFrom, 0)));
+    const imageUrl = text(body.imageUrl);
+    const isActive = booleanValue(body.isActive, true);
+    const sortOrder = Math.round(numberValue(body.sortOrder, 0));
+
+    if (!id || !name) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Product id and name are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const baseSlug = slugify(text(body.slug, name));
+    const slug = await makeUniqueSlug(prisma, baseSlug, id);
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        slug,
+        category,
+        description,
+        priceFrom,
+        imageUrl: imageUrl || null,
+        isActive,
+        sortOrder,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: product,
+      message: "Product updated.",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update product.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 export async function DELETE(request: Request) {
   const prisma = getPrisma();
