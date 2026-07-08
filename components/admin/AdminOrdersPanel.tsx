@@ -22,6 +22,42 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function normalizeWhatsAppNumber(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("0")) {
+    return `62${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("62")) {
+    return digits;
+  }
+
+  return digits;
+}
+
+function getFollowUpMessage(inquiry: Inquiry) {
+  return encodeURIComponent(
+    [
+      `Halo ${inquiry.name}, kami dari Hazel Apparel.`,
+      "",
+      inquiry.productName
+        ? `Terima kasih sudah menghubungi kami terkait produk ${inquiry.productName}.`
+        : "Terima kasih sudah menghubungi kami.",
+      "",
+      "Boleh kami bantu lanjutkan kebutuhan custom jersey/apparel-nya?",
+    ].join("\n")
+  );
+}
+
 function statusClass(status: string) {
   if (status === "NEW") {
     return "border-[#d8b36d]/30 text-[#d8b36d]";
@@ -121,13 +157,28 @@ export default function AdminOrdersPanel() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={loadInquiries}
-              className="rounded-full border border-white/10 px-4 py-2 text-xs text-zinc-300 transition hover:bg-white/10"
-            >
-              Refresh
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {normalizeWhatsAppNumber(inquiry.whatsapp) ? (
+                <a
+                  href={`https://wa.me/${normalizeWhatsAppNumber(
+                    inquiry.whatsapp
+                  )}?text=${getFollowUpMessage(inquiry)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-emerald-400/30 px-4 py-2 text-xs font-medium text-emerald-300 transition hover:bg-emerald-400/10"
+                >
+                  Chat WhatsApp
+                </a>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={loadInquiries}
+                className="rounded-full border border-white/10 px-4 py-2 text-xs text-zinc-300 transition hover:bg-white/10"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
