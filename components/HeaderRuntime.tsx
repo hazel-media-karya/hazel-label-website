@@ -32,5 +32,5 @@ export default function HeaderRuntime() {
     };
   }, []);
 
-  return <Header settings={settings} />;
+  return <Header />;
 }
