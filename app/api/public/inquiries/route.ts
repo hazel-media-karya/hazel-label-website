@@ -1,0 +1,86 @@
+import { NextResponse } from "next/server";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@/lib/generated/prisma/client";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+function text(value: unknown, fallback = "") {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function getPrisma() {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not configured.");
+  }
+
+  const adapter = new PrismaPg({
+    connectionString,
+  });
+
+  return new PrismaClient({
+    adapter,
+  });
+}
+
+export async function POST(request: Request) {
+  const prisma = getPrisma();
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const name = text(body.name);
+    const email = text(body.email);
+    const whatsapp = text(body.whatsapp);
+    const productName = text(body.productName);
+    const productSlug = text(body.productSlug);
+    const message = text(body.message);
+    const source = text(body.source, "public_contact_form");
+
+    if (!name || !message) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Name and message are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const inquiry = await prisma.inquiry.create({
+      data: {
+        name,
+        email: email || null,
+        whatsapp: whatsapp || null,
+        productName: productName || null,
+        productSlug: productSlug || null,
+        message,
+        source,
+        status: "NEW",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: inquiry,
+      message: "Inquiry saved.",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to save inquiry.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}

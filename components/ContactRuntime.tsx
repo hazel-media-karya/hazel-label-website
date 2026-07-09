@@ -52,7 +52,7 @@ export default function ContactRuntime() {
       message || `Halo Hazel Apparel, saya tertarik order produk ${project || "custom apparel"}.`;
 
     try {
-      await fetch("/api/public/inquiries", {
+      const response = await fetch("/api/public/inquiries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,8 +67,16 @@ export default function ContactRuntime() {
           source: "contact_form",
         }),
       });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error("Inquiry save failed");
+      }
     } catch {
-      // WhatsApp tetap dibuka walaupun penyimpanan database gagal.
+      setSending(false);
+      alert("Order belum berhasil tersimpan. Silakan coba lagi.");
+      return;
     }
 
     const text = encodeURIComponent(
