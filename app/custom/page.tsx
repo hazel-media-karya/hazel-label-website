@@ -1,10 +1,31 @@
-import HeaderRuntime from "@/components/HeaderRuntime";
 import FooterRuntime from "@/components/FooterRuntime";
+import Link from "next/link";
 
 export default function CustomStudioPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <HeaderRuntime />
+      <header className="border-b border-white/10 bg-black">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <Link href="/" className="text-lg font-bold tracking-wide text-white">
+            HAZEL APPAREL
+          </Link>
+
+          <nav className="hidden items-center gap-8 text-sm text-gray-300 md:flex">
+            <Link href="/" className="hover:text-white">
+              Home
+            </Link>
+            <Link href="/products" className="hover:text-white">
+              Products
+            </Link>
+            <Link href="/custom" className="text-white">
+              Custom Studio
+            </Link>
+            <Link href="/login" className="hover:text-white">
+              Login
+            </Link>
+          </nav>
+        </div>
+      </header>
 
       <main className="flex-1 px-6 py-12">
         <section className="max-w-5xl mx-auto">
