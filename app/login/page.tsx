@@ -1,6 +1,4 @@
-import Image from "next/image";
 import Link from "next/link";
-import { siteConfig } from "@/lib/site-config";
 
 export const dynamic = "force-static";
 
@@ -9,15 +7,8 @@ export default function LoginPage() {
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link href="/" className="flex items-center">
-            <Image
-              src={siteConfig.logoPath}
-              alt={`${siteConfig.brandName} logo`}
-              width={170}
-              height={60}
-              priority
-              className="h-auto w-[150px] sm:w-[170px]"
-            />
+          <Link href="/" className="text-xl font-bold tracking-wide">
+            HAZEL APPAREL
           </Link>
 
           <nav className="hidden gap-8 text-sm text-white/75 md:flex">
