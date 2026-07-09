@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS=--max-old-space-size=4096 NEXT_PRIVATE_BUILD_WORKER_COUNT=1 prisma generate && NODE_OPTIONS=--max-old-space-size=4096 NEXT_PRIVATE_BUILD_WORKER_COUNT=1 next build --webpack && cp -r public .next/standalone/public && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static",
-    "start": "node .next/standalone/server.js",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 NEXT_PRIVATE_BUILD_WORKER_COUNT=1 prisma generate && NODE_OPTIONS=--max-old-space-size=4096 NEXT_PRIVATE_BUILD_WORKER_COUNT=1 next build --webpack",
+    "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
