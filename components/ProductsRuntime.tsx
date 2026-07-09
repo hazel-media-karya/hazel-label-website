@@ -5,148 +5,135 @@ import { useEffect, useState } from "react";
 type Product = {
   id: string;
   name: string;
-  slug?: string | null;
-  category?: string | null;
-  description?: string | null;
-  priceFrom?: number | null;
-  imageUrl?: string | null;
+  slug: string;
+  category: string;
+  description: string | null;
+  priceFrom: number | null;
+  imageUrl: string | null;
   isActive?: boolean;
-  sortOrder?: number | null;
 };
+
+function formatPrice(value: number | null) {
+  if (!value) {
+    return "Hubungi kami";
+  }
+
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function getOrderLink(product: Product) {
+  return `/contact?product=${encodeURIComponent(product.slug)}`;
+}
 
 export default function ProductsRuntime() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-
     async function loadProducts() {
-      try {
-        setLoading(true);
-        setError("");
+      setLoading(true);
 
-        const res = await fetch("/api/public/products", {
+      try {
+        const response = await fetch("/api/public/products", {
           cache: "no-store",
         });
 
-        if (!res.ok) {
-          throw new Error(`Failed to load products: ${res.status}`);
+        const json = await response.json();
+
+        if (!json.success) {
+          setMessage("Produk belum dapat dimuat.");
+          setProducts([]);
+          return;
         }
 
-        const payload = await res.json();
-
-        const list = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
-
-        if (!cancelled) {
-          setProducts(list);
-        }
-      } catch (err) {
-        console.error("ProductsRuntime error:", err);
-
-        if (!cancelled) {
-          setError("Failed to load products.");
-        }
+        setProducts(json.data ?? []);
+      } catch {
+        setMessage("Produk belum dapat dimuat.");
+        setProducts([]);
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
 
     loadProducts();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
-
-  function formatPrice(value?: number | null) {
-    if (!value) return "Contact for price";
-
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(value);
-  }
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 text-white/70">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-zinc-400">
         Loading products...
       </div>
     );
   }
 
-  if (error) {
+  if (message) {
     return (
-      <div className="rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-red-200">
-        {error}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-zinc-400">
+        {message}
       </div>
     );
   }
 
   if (products.length === 0) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 text-white/70">
-        No products available yet.
+      <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-zinc-400">
+        Produk Hazel akan segera ditampilkan di sini.
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
       {products.map((product) => (
         <article
           key={product.id}
-          className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]"
+          className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] transition hover:border-white/20 hover:bg-white/[0.055]"
         >
-          <div className="aspect-[4/3] bg-white/[0.04]">
+          <div className="aspect-[4/3] overflow-hidden bg-zinc-950">
             {product.imageUrl ? (
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="h-full w-full object-cover"
-                loading="lazy"
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm uppercase tracking-[0.25em] text-white/40">
-                Hazel Apparel
+              <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.35em] text-zinc-600">
+                No Image
               </div>
             )}
           </div>
 
           <div className="p-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-yellow-300">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               {product.category || "Custom Jersey"}
             </p>
 
-            <h3 className="mt-3 text-2xl font-bold text-white">
+            <h2 className="mt-4 text-2xl font-semibold text-white">
               {product.name}
-            </h3>
+            </h2>
 
-            {product.description ? (
-              <p className="mt-3 text-sm leading-6 text-white/65">
-                {product.description}
-              </p>
-            ) : null}
+            <p className="mt-3 min-h-[56px] text-sm leading-7 text-zinc-400">
+              {product.description || "Custom apparel by Hazel Apparel."}
+            </p>
 
-            <div className="mt-5 flex items-center justify-between gap-4">
-              <p className="text-sm font-semibold text-white">
-                From {formatPrice(product.priceFrom)}
-              </p>
+            <div className="mt-8 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs text-zinc-500">Start from</p>
+                <p className="mt-1 text-base font-semibold text-white">
+                  {formatPrice(product.priceFrom)}
+                </p>
+              </div>
 
               <a
-                href="/custom"
-                className="rounded-full bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/85"
+                href={getOrderLink(product)}
+                className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white transition hover:border-white/25 hover:bg-white hover:text-black"
               >
-                Custom
+                Order
               </a>
             </div>
           </div>
