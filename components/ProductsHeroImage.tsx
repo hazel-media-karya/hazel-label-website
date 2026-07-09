@@ -16,7 +16,7 @@ export default function ProductsHeroImage() {
   useEffect(() => {
     async function loadHeroImage() {
       try {
-        const response = await fetch("/api/admin/products", {
+        const response = await fetch("/api/public/products", {
           cache: "no-store",
         });
 
@@ -27,7 +27,7 @@ export default function ProductsHeroImage() {
         }
 
         const product = (json.data ?? []).find(
-          (item: Product) => item.isActive && item.imageUrl
+          (item: Product) => item.imageUrl
         );
 
         if (product?.imageUrl) {
