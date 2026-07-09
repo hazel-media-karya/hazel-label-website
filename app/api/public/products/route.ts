@@ -48,10 +48,6 @@ export async function GET() {
         sortOrder: true,
         createdAt: true,
         updatedAt: true,
-
-        // IMPORTANT:
-        // Jangan kirim imageUrl base64 besar ke public API.
-        // Ini penyebab Railway runtime out of memory.
       },
     });
 
@@ -59,7 +55,7 @@ export async function GET() {
       success: true,
       data: products.map((product) => ({
         ...product,
-        imageUrl: null,
+        imageUrl: `/api/public/products/${product.id}/image`,
       })),
     });
   } catch (error) {
