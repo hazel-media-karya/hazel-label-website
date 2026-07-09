@@ -1,10 +1,10 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import HeaderRuntime from "@/components/HeaderRuntime";
+import FooterRuntime from "@/components/FooterRuntime";
 
 export default function CustomStudioPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <Header />
+      <HeaderRuntime />
 
       <main className="flex-1 px-6 py-12">
         <section className="max-w-5xl mx-auto">
@@ -48,7 +48,7 @@ export default function CustomStudioPage() {
         </section>
       </main>
 
-      <Footer />
+      <FooterRuntime />
     </div>
   );
 }
