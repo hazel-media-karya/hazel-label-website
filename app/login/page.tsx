@@ -1,132 +1,50 @@
+import Link from "next/link";
 import HeaderRuntime from "@/components/HeaderRuntime";
 import FooterRuntime from "@/components/FooterRuntime";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{
-    error?: string;
-    success?: string;
-    redirect?: string;
-  }>;
+  searchParams?: Promise<{ error?: string; next?: string }>;
 }) {
-  const params = searchParams ? await searchParams : {};
-  const error = params?.error;
-  const success = params?.success;
-  const redirect = params?.redirect || "/admin";
+  const resolvedSearchParams = await searchParams;
+  const nextPath = resolvedSearchParams?.next ?? "/admin";
+  const hasError = resolvedSearchParams?.error === "invalid";
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-[#030303] text-[#f8f2e8]">
       <HeaderRuntime />
+      <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-6 py-16 sm:px-8 lg:px-10">
+        <div className="w-full max-w-md rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,_rgba(255,255,255,0.08),_rgba(255,255,255,0.02))] p-8 shadow-[0_0_80px_rgba(0,0,0,0.35)]">
+          <p className="text-sm uppercase tracking-[0.3em] text-[#d8b36d]">Temporary Admin Access</p>
+          <h1 className="mt-3 text-3xl font-semibold text-white">Access the Hazel admin workspace</h1>
+          <p className="mt-3 text-sm leading-7 text-zinc-400">Use the environment-based credentials configured for this deployment to continue into the private admin area.</p>
 
-      <main className="flex-1 px-6 py-20">
-        <section className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <p className="text-sm uppercase tracking-[0.35em] text-blue-200/80">
-              Hazel Admin
-            </p>
-
-            <h1 className="mt-6 max-w-4xl text-5xl font-bold leading-tight tracking-tight text-white md:text-7xl">
-              Sign in to Hazel Label
-            </h1>
-
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-white/70 md:text-xl">
-              Access your Hazel Label dashboard to manage products, inquiries,
-              orders, website content, and custom jersey requests.
-            </p>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <h2 className="text-lg font-bold text-white">
-                  Product Management
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-white/60">
-                  Manage jersey products, pricing, images, and product details.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <h2 className="text-lg font-bold text-white">
-                  Customer Orders
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-white/60">
-                  Review inquiries, custom requests, and incoming orders.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mx-auto w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl md:p-8">
-            <div className="mb-8">
-              <p className="text-sm uppercase tracking-[0.3em] text-yellow-300">
-                Login
+          <form action="/api/auth/login" method="post" className="mt-8 space-y-4">
+            <input type="hidden" name="next" value={nextPath} />
+            <label className="block text-sm text-zinc-300">
+              <span className="mb-2 block">Email</span>
+              <input type="email" name="email" className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0" placeholder="admin@hazellabel.com" required />
+            </label>
+            <label className="block text-sm text-zinc-300">
+              <span className="mb-2 block">Password</span>
+              <input type="password" name="password" className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0" placeholder="Enter password" required />
+            </label>
+            {hasError ? (
+              <p className="rounded-2xl border border-[#d8b36d]/30 bg-[#d8b36d]/10 px-3 py-2 text-sm text-[#f1d7a2]">
+                Invalid admin credentials. Please try again.
               </p>
-
-              <h2 className="mt-4 text-3xl font-bold text-white">
-                Admin Dashboard
-              </h2>
-
-              <p className="mt-3 text-sm leading-6 text-white/60">
-                Please sign in using your registered admin account.
-              </p>
-            </div>
-
-            {error ? (
-              <div className="mb-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                Login failed. Please check your email and password.
-              </div>
             ) : null}
+            <button type="submit" className="w-full rounded-full bg-[#d8b36d] px-5 py-3 text-sm font-semibold text-[#140f09] transition hover:bg-[#e8c47a]">
+              Sign In
+            </button>
+          </form>
 
-            {success ? (
-              <div className="mb-5 rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-200">
-                Your account is ready. Please login to continue.
-              </div>
-            ) : null}
-
-            <form action="/api/auth/login" method="POST" className="space-y-5">
-              <input type="hidden" name="redirect" value={redirect} />
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-white/70">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="admin@hazellabel.com"
-                  className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-white/40"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-white/70">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-white/40"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-white/85"
-              >
-                Sign In
-              </button>
-            </form>
-
-            <p className="mt-6 text-center text-sm text-white/45">
-              Hazel Label admin access is limited to authorized users.
-            </p>
+          <div className="mt-6 text-center text-sm text-zinc-400">
+            Need a temporary access setup? <Link href="/contact" className="text-[#f1d7a2]">Reach out</Link>
           </div>
-        </section>
+        </div>
       </main>
-
       <FooterRuntime />
     </div>
   );

@@ -6,7 +6,7 @@ import { SectionTitle } from "@/components/SectionTitle";
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#030303] text-[#f8f2e8]">
-      <Header />
+      <HeaderRuntime />
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-10">
         <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(216,179,109,0.16),_transparent_44%),linear-gradient(135deg,_rgba(255,255,255,0.06),_rgba(255,255,255,0.02))] p-8 shadow-[0_0_80px_rgba(0,0,0,0.3)]">
           <SectionTitle
@@ -61,7 +61,7 @@ export default function AboutPage() {
           Ready to create a signature kit? <Link href="/hazel-studio" className="font-semibold text-white">Enter Hazel Studio</Link> and begin your premium apparel journey.
         </div>
       </main>
-      <Footer />
+      <FooterRuntime />
     </div>
   );
 }

@@ -69,7 +69,7 @@ export default function HeroSliderRuntime() {
 
     async function loadHeroSettings() {
       try {
-        const response = await fetch("/api/admin/site-settings", {
+        const response = await fetch("/api/public/site-settings", {
           cache: "no-store",
         });
 
