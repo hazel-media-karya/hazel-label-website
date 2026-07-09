@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import HeaderRuntime from "@/components/HeaderRuntime";
+import FooterRuntime from "@/components/FooterRuntime";
 import { SectionTitle } from "@/components/SectionTitle";
 
 export default function AboutPage() {
