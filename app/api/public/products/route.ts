@@ -37,13 +37,34 @@ export async function GET() {
           createdAt: "desc",
         },
       ],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        category: true,
+        description: true,
+        priceFrom: true,
+        isActive: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+
+        // IMPORTANT:
+        // Jangan kirim imageUrl base64 besar ke public API.
+        // Ini penyebab Railway runtime out of memory.
+      },
     });
 
     return NextResponse.json({
       success: true,
-      data: products,
+      data: products.map((product) => ({
+        ...product,
+        imageUrl: null,
+      })),
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to load public products:", error);
+
     return NextResponse.json(
       {
         success: false,
