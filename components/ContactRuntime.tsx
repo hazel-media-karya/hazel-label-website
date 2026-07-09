@@ -52,7 +52,7 @@ export default function ContactRuntime() {
       message || `Halo Hazel Apparel, saya tertarik order produk ${project || "custom apparel"}.`;
 
     try {
-      await fetch("/api/admin/inquiries", {
+      await fetch("/api/public/inquiries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
