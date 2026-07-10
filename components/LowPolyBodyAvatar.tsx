@@ -96,6 +96,8 @@ export default function LowPolyBodyAvatar({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(width, height, false);
       mount.appendChild(renderer.domElement);
+      renderer.domElement.style.cursor = "grab";
+      renderer.domElement.style.touchAction = "none";
 
       const group = new THREE.Group();
       group.position.y = -0.25;
@@ -110,6 +112,13 @@ export default function LowPolyBodyAvatar({
       const rimLight = new THREE.DirectionalLight("#d8b36d", 1.4);
       rimLight.position.set(-4, 2, -5);
       scene.add(rimLight);
+
+      const grid = new THREE.GridHelper(6, 12, "#d8b36d", "#2a2a2a");
+      grid.position.y = -2.05;
+      const gridMaterial = grid.material as THREE.Material;
+      gridMaterial.transparent = true;
+      gridMaterial.opacity = 0.18;
+      scene.add(grid);
 
       const skinMaterial = new THREE.MeshStandardMaterial({
         color: "#d8b36d",
@@ -246,8 +255,57 @@ export default function LowPolyBodyAvatar({
         }
       });
 
-      const targetRotation =
+      let targetRotationY =
         view === "front" ? 0 : view === "side" ? -Math.PI / 2 : Math.PI;
+      let targetRotationX = -0.03;
+      let targetCameraZ = 7.5;
+      let isDragging = false;
+      let lastPointerX = 0;
+      let lastPointerY = 0;
+
+      function handlePointerDown(event: PointerEvent) {
+        isDragging = true;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        renderer?.domElement.setPointerCapture(event.pointerId);
+        if (renderer) {
+          renderer.domElement.style.cursor = "grabbing";
+        }
+      }
+
+      function handlePointerMove(event: PointerEvent) {
+        if (!isDragging) return;
+
+        const deltaX = event.clientX - lastPointerX;
+        const deltaY = event.clientY - lastPointerY;
+
+        targetRotationY += deltaX * 0.01;
+        targetRotationX += deltaY * 0.008;
+        targetRotationX = Math.max(-0.55, Math.min(0.45, targetRotationX));
+
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+      }
+
+      function handlePointerUp(event: PointerEvent) {
+        isDragging = false;
+        renderer?.domElement.releasePointerCapture(event.pointerId);
+        if (renderer) {
+          renderer.domElement.style.cursor = "grab";
+        }
+      }
+
+      function handleWheel(event: WheelEvent) {
+        event.preventDefault();
+        targetCameraZ += event.deltaY * 0.006;
+        targetCameraZ = Math.max(4.6, Math.min(10.5, targetCameraZ));
+      }
+
+      renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.addEventListener("pointermove", handlePointerMove);
+      renderer.domElement.addEventListener("pointerup", handlePointerUp);
+      renderer.domElement.addEventListener("pointerleave", handlePointerUp);
+      renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
 
       const resizeObserver = new ResizeObserver(() => {
         const currentMount = mountRef.current;
@@ -264,8 +322,11 @@ export default function LowPolyBodyAvatar({
       resizeObserver.observe(mount);
 
       function animate() {
-        group.rotation.y += (targetRotation - group.rotation.y) * 0.08;
-        group.rotation.x = -0.03;
+        group.rotation.y += (targetRotationY - group.rotation.y) * 0.1;
+        group.rotation.x += (targetRotationX - group.rotation.x) * 0.1;
+
+        camera.position.z += (targetCameraZ - camera.position.z) * 0.1;
+        camera.lookAt(0, 0, 0);
 
         renderer?.render(scene, camera);
         frame = requestAnimationFrame(animate);
@@ -276,6 +337,12 @@ export default function LowPolyBodyAvatar({
       return () => {
         cancelAnimationFrame(frame);
         resizeObserver.disconnect();
+
+        renderer?.domElement.removeEventListener("pointerdown", handlePointerDown);
+        renderer?.domElement.removeEventListener("pointermove", handlePointerMove);
+        renderer?.domElement.removeEventListener("pointerup", handlePointerUp);
+        renderer?.domElement.removeEventListener("pointerleave", handlePointerUp);
+        renderer?.domElement.removeEventListener("wheel", handleWheel);
 
         scene.traverse((object) => {
           if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
@@ -306,9 +373,14 @@ export default function LowPolyBodyAvatar({
   return (
     <div className="mt-4 overflow-hidden rounded-[28px] border border-white/10 bg-black/60">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#d8b36d]">
-          Low-Poly 3D Avatar
-        </p>
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#d8b36d]">
+            Low-Poly 3D Avatar
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Drag to rotate · Scroll to zoom
+          </p>
+        </div>
 
         <div className="flex gap-2">
           {(["front", "side", "back"] as ViewMode[]).map((item) => (
