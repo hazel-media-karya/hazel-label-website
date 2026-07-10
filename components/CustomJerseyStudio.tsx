@@ -7,6 +7,8 @@ type ViewMode = "front" | "back" | "left" | "right";
 type FitPreference = "slim" | "regular" | "relaxed";
 
 type BodyMeasurements = {
+  height: string;
+  weight: string;
   chest: string;
   waist: string;
   frontLength: string;
@@ -18,6 +20,8 @@ type BodyMeasurements = {
 };
 
 const defaultBody: BodyMeasurements = {
+  height: "170",
+  weight: "65",
   chest: "92",
   waist: "82",
   frontLength: "58",
@@ -40,17 +44,42 @@ function toNumber(value: string) {
   return Number.isFinite(number) ? number : 0;
 }
 
-function getSizeRecommendation(chest: number, waist: number) {
+function getSizeRecommendation(
+  chest: number,
+  waist: number,
+  height: number,
+  weight: number
+) {
   const base = Math.max(chest, waist + 8);
+  const bmi =
+    height > 0 && weight > 0 ? weight / Math.pow(height / 100, 2) : 0;
 
-  if (base <= 86) return "S";
-  if (base <= 94) return "M";
-  if (base <= 102) return "L";
-  if (base <= 110) return "XL";
-  return "CUSTOM";
+  const sizes = ["S", "M", "L", "XL", "CUSTOM"] as const;
+
+  let index = 0;
+
+  if (base <= 86) index = 0;
+  else if (base <= 94) index = 1;
+  else if (base <= 102) index = 2;
+  else if (base <= 110) index = 3;
+  else index = 4;
+
+  if ((height >= 185 || bmi >= 28) && index < sizes.length - 1) {
+    index += 1;
+  }
+
+  if (height > 0 && height <= 155 && bmi > 0 && bmi < 20 && index > 0) {
+    index -= 1;
+  }
+
+  return sizes[index];
 }
 
 function getFitNotes(body: BodyMeasurements, fit: FitPreference) {
+  const height = toNumber(body.height);
+  const weight = toNumber(body.weight);
+  const height = toNumber(body.height);
+  const weight = toNumber(body.weight);
   const chest = toNumber(body.chest);
   const waist = toNumber(body.waist);
   const frontLength = toNumber(body.frontLength);
@@ -60,6 +89,22 @@ function getFitNotes(body: BodyMeasurements, fit: FitPreference) {
   const pocket = toNumber(body.pocketLength);
 
   const notes: string[] = [];
+
+  if (height > 0 && weight > 0) {
+    const bmi = weight / Math.pow(height / 100, 2);
+
+    if (height >= 180) {
+      notes.push("Tinggi badan cukup tinggi; panjang jersey perlu diperhatikan agar tidak terlalu pendek.");
+    }
+
+    if (bmi >= 27) {
+      notes.push("Rasio berat dan tinggi menunjukkan body volume lebih besar; rekomendasi size perlu diberi ease tambahan.");
+    }
+
+    if (bmi < 19) {
+      notes.push("Rasio berat dan tinggi cenderung slim; pola dapat dibuat lebih ramping.");
+    }
+  }
 
   if (chest - waist >= 12) {
     notes.push("Bentuk badan cenderung athletic; bagian dada perlu ruang lebih.");
@@ -111,6 +156,8 @@ export default function CustomJerseyStudio() {
   const [playerNumber, setPlayerNumber] = useState("07");
   const [artworkUrl, setArtworkUrl] = useState("");
 
+  const height = toNumber(body.height);
+  const weight = toNumber(body.weight);
   const chest = toNumber(body.chest);
   const waist = toNumber(body.waist);
   const frontLength = toNumber(body.frontLength);
@@ -121,8 +168,8 @@ export default function CustomJerseyStudio() {
   const pocketLength = toNumber(body.pocketLength);
 
   const recommendedSize = useMemo(
-    () => getSizeRecommendation(chest, waist),
-    [chest, waist]
+    () => getSizeRecommendation(chest, waist, height, weight),
+    [chest, waist, height, weight]
   );
 
   const fitNotes = useMemo(
@@ -137,6 +184,8 @@ export default function CustomJerseyStudio() {
       `Halo Hazel Apparel, saya ingin custom jersey.
 
 BODY MEASUREMENT:
+Tinggi badan: ${body.height} cm
+Berat badan: ${body.weight} kg
 Lingkar dada: ${body.chest} cm
 Lingkar perut: ${body.waist} cm
 Panjang depan kerah-bawah: ${body.frontLength} cm
@@ -249,49 +298,71 @@ Warna kedua: ${secondColor}`
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <MeasurementInput
+                label="Tinggi badan"
+                unit="cm"
+                value={body.height}
+                onChange={(value) => updateBody("height", value)}
+              />
+
+              <MeasurementInput
+                label="Berat badan"
+                unit="kg"
+                value={body.weight}
+                onChange={(value) => updateBody("weight", value)}
+              />
+
+              <MeasurementInput
                 label="Lingkar dada"
+                unit="cm"
                 value={body.chest}
                 onChange={(value) => updateBody("chest", value)}
               />
 
               <MeasurementInput
                 label="Lingkar perut"
+                unit="cm"
                 value={body.waist}
                 onChange={(value) => updateBody("waist", value)}
               />
 
               <MeasurementInput
                 label="Panjang kerah sampai ujung bawah jersey"
+                unit="cm"
                 value={body.frontLength}
                 onChange={(value) => updateBody("frontLength", value)}
               />
 
               <MeasurementInput
                 label="Panjang jersey bagian belakang"
+                unit="cm"
                 value={body.backLength}
                 onChange={(value) => updateBody("backLength", value)}
               />
 
               <MeasurementInput
                 label="Lingkar lengan"
+                unit="cm"
                 value={body.armCircumference}
                 onChange={(value) => updateBody("armCircumference", value)}
               />
 
               <MeasurementInput
                 label="Panjang lengan"
+                unit="cm"
                 value={body.sleeveLength}
                 onChange={(value) => updateBody("sleeveLength", value)}
               />
 
               <MeasurementInput
                 label="Lingkar leher"
+                unit="cm"
                 value={body.neck}
                 onChange={(value) => updateBody("neck", value)}
               />
 
               <MeasurementInput
                 label="Panjang saku"
+                unit="cm"
                 value={body.pocketLength}
                 onChange={(value) => updateBody("pocketLength", value)}
               />
@@ -488,15 +559,17 @@ Warna kedua: ${secondColor}`
 function MeasurementInput({
   label,
   value,
+  unit = "cm",
   onChange,
 }: {
   label: string;
+  unit?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="text-xs font-medium text-zinc-300">
-      {label} <span className="text-zinc-500">(cm)</span>
+      {label} <span className="text-zinc-500">({unit})</span>
       <input
         type="number"
         value={value}
@@ -510,9 +583,11 @@ function MeasurementInput({
 function ColorInput({
   label,
   value,
+  unit = "cm",
   onChange,
 }: {
   label: string;
+  unit?: string;
   value: string;
   onChange: (value: string) => void;
 }) {

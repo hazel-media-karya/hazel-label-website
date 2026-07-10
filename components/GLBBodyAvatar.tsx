@@ -8,6 +8,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 type FitPreference = "slim" | "regular" | "relaxed";
 
 type BodyMeasurements = {
+  height: string;
+  weight: string;
   chest: string;
   waist: string;
   frontLength: string;
@@ -42,6 +44,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
   const [renderError, setRenderError] = useState("");
 
   const dimensions = useMemo(() => {
+    const height = toNumber(body.height);
+    const weight = toNumber(body.weight);
     const chest = toNumber(body.chest);
     const waist = toNumber(body.waist);
     const neck = toNumber(body.neck);
@@ -52,6 +56,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     const fitEase = fit === "slim" ? 1 : fit === "relaxed" ? 1.12 : 1.06;
 
     return {
+      height,
+      weight,
       chest,
       waist,
       neck,
@@ -63,6 +69,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
       armScale: clamp(arm / 30, 0.78, 1.35),
       sleeveScale: clamp(sleeve / 24, 0.75, 1.35),
       torsoScale: clamp(backLength / 64, 0.85, 1.25),
+      heightScale: clamp(height / 170, 0.86, 1.18),
+      massScale: clamp(weight / 65, 0.82, 1.22),
     };
   }, [body, fit]);
 
@@ -130,7 +138,11 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
       (gltf) => {
         const model = gltf.scene;
         model.position.set(0, -1.15, 0);
-        model.scale.setScalar(2.15);
+        model.scale.set(
+          2.15 * dimensions.massScale,
+          2.15 * dimensions.heightScale,
+          2.15 * dimensions.massScale
+        );
 
         model.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
@@ -291,6 +303,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
         <div ref={mountRef} className="h-[480px] w-full" />
 
         <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 text-xs leading-6 text-zinc-300">
+          <p>Tinggi: {dimensions.height} cm</p>
+          <p>Berat: {dimensions.weight} kg</p>
           <p>Dada: {dimensions.chest} cm</p>
           <p>Perut: {dimensions.waist} cm</p>
           <p>Leher: {dimensions.neck} cm</p>
