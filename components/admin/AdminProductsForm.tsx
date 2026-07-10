@@ -146,6 +146,11 @@ export default function AdminProductsForm() {
       return false;
     }
 
+    if (!form.imageUrl.trim()) {
+      setMessage("Upload gambar produk dulu sampai preview muncul, baru simpan produk.");
+      return false;
+    }
+
     if (form.imageUrl.trim().startsWith("data:")) {
       setMessage("Base64 tidak boleh disimpan. Upload gambar ulang.");
       return false;
@@ -359,8 +364,14 @@ export default function AdminProductsForm() {
             </div>
 
             <p className="mt-2 text-xs leading-6 text-zinc-500">
-              JPG/PNG/WebP maksimal 5MB. Sistem otomatis mengoptimasi gambar lewat Cloudinary dan database hanya menyimpan URL.
+              JPG/PNG/WebP maksimal 5MB. Setelah upload sukses, preview gambar akan muncul di bawah.
             </p>
+
+            {form.imageUrl ? (
+              <p className="mt-2 break-all rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-xs text-zinc-400">
+                Image URL: {form.imageUrl}
+              </p>
+            ) : null}
 
             {form.imageUrl ? (
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-4">
@@ -417,7 +428,7 @@ export default function AdminProductsForm() {
           <button
             type="button"
             onClick={editingProductId ? updateProduct : createProduct}
-            disabled={saving || uploading || !form.name.trim()}
+            disabled={saving || uploading || !form.name.trim() || !form.imageUrl.trim()}
             className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving..." : editingProductId ? "Update Product" : "Add Product"}
