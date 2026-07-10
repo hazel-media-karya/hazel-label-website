@@ -26,6 +26,32 @@ type Props = {
   recommendedSize: string;
 };
 
+type AvatarDimensions = {
+  height: number;
+  weight: number;
+  chest: number;
+  waist: number;
+  neck: number;
+  arm: number;
+  sleeve: number;
+  heightScale: number;
+  massScale: number;
+  chestScale: number;
+  waistScale: number;
+  neckScale: number;
+  armScale: number;
+  sleeveScale: number;
+  torsoScale: number;
+  bodyWidthScale: number;
+};
+
+type OriginalTransform = {
+  scale: THREE.Vector3;
+  position: THREE.Vector3;
+};
+
+const BASE_MODEL_SCALE = 2.15;
+
 function toNumber(value: string) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -39,11 +65,205 @@ function normalizeName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function getObjectPath(object: THREE.Object3D) {
+  const names: string[] = [];
+  let current: THREE.Object3D | null = object;
+
+  while (current) {
+    if (current.name) names.push(current.name);
+    current = current.parent;
+  }
+
+  return normalizeName(names.join("-"));
+}
+
+function includesAny(value: string, keywords: string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function captureOriginalTransforms(
+  object: THREE.Object3D,
+  originals: Map<string, OriginalTransform>
+) {
+  object.traverse((child) => {
+    originals.set(child.uuid, {
+      scale: child.scale.clone(),
+      position: child.position.clone(),
+    });
+  });
+}
+
+function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
+  if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
+
+  Object.entries(mesh.morphTargetDictionary).forEach(([name, index]) => {
+    const morphName = normalizeName(name);
+
+    if (includesAny(morphName, ["chest", "dada", "upperbody", "rib"])) {
+      mesh.morphTargetInfluences![index] = clamp(
+        (dimensions.chestScale - 1) * 1.8,
+        -0.55,
+        0.85
+      );
+    }
+
+    if (includesAny(morphName, ["waist", "perut", "belly", "abdomen"])) {
+      mesh.morphTargetInfluences![index] = clamp(
+        (dimensions.waistScale - 1) * 1.8,
+        -0.55,
+        0.85
+      );
+    }
+
+    if (includesAny(morphName, ["arm", "lengan", "bicep", "sleeve"])) {
+      mesh.morphTargetInfluences![index] = clamp(
+        (dimensions.armScale - 1) * 1.8,
+        -0.55,
+        0.85
+      );
+    }
+
+    if (includesAny(morphName, ["neck", "leher"])) {
+      mesh.morphTargetInfluences![index] = clamp(
+        (dimensions.neckScale - 1) * 1.6,
+        -0.45,
+        0.65
+      );
+    }
+  });
+}
+
+function applyMeasurementTransforms(
+  model: THREE.Object3D,
+  originals: Map<string, OriginalTransform>,
+  dimensions: AvatarDimensions
+) {
+  model.scale.set(
+    BASE_MODEL_SCALE * dimensions.bodyWidthScale,
+    BASE_MODEL_SCALE * dimensions.heightScale,
+    BASE_MODEL_SCALE * dimensions.bodyWidthScale
+  );
+
+  model.traverse((object) => {
+    if (object === model) return;
+
+    const original = originals.get(object.uuid);
+    if (original) {
+      object.scale.copy(original.scale);
+      object.position.copy(original.position);
+    }
+
+    const path = getObjectPath(object);
+
+    const isChest = includesAny(path, [
+      "chest",
+      "dada",
+      "upperbody",
+      "upper",
+      "rib",
+      "pectoral",
+      "spineupper",
+    ]);
+
+    const isWaist = includesAny(path, [
+      "waist",
+      "perut",
+      "belly",
+      "abdomen",
+      "stomach",
+      "hip",
+      "pelvis",
+      "lowerbody",
+    ]);
+
+    const isNeck = includesAny(path, ["neck", "leher"]);
+
+    const isArm = includesAny(path, [
+      "arm",
+      "lengan",
+      "bicep",
+      "forearm",
+      "sleeve",
+      "leftarm",
+      "rightarm",
+    ]);
+
+    const isTorso = includesAny(path, [
+      "torso",
+      "body",
+      "spine",
+      "trunk",
+      "chestbody",
+      "abdomenbody",
+    ]);
+
+    if (isChest) {
+      object.scale.x *= dimensions.chestScale;
+      object.scale.z *= dimensions.chestScale;
+    }
+
+    if (isWaist) {
+      object.scale.x *= dimensions.waistScale;
+      object.scale.z *= dimensions.waistScale;
+    }
+
+    if (isNeck) {
+      object.scale.x *= dimensions.neckScale;
+      object.scale.z *= dimensions.neckScale;
+    }
+
+    if (isArm) {
+      object.scale.x *= dimensions.armScale;
+      object.scale.z *= dimensions.armScale;
+      object.scale.y *= dimensions.sleeveScale;
+    }
+
+    if (isTorso) {
+      object.scale.y *= dimensions.torsoScale;
+    }
+
+    if (object instanceof THREE.Mesh) {
+      applyMorphTargets(object, dimensions);
+    }
+  });
+}
+
+function fitCameraToModel(
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  model: THREE.Object3D
+) {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fov = THREE.MathUtils.degToRad(camera.fov);
+  const distance = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 0.68;
+
+  const targetY = center.y + size.y * 0.12;
+
+  camera.position.set(center.x, targetY, center.z + distance);
+  camera.near = 0.01;
+  camera.far = Math.max(100, distance * 12);
+  camera.updateProjectionMatrix();
+
+  controls.target.set(center.x, targetY, center.z);
+  controls.minDistance = Math.max(0.65, distance * 0.42);
+  controls.maxDistance = Math.max(4.5, distance * 2.4);
+  controls.update();
+}
+
 export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const modelRef = useRef<THREE.Object3D | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const originalsRef = useRef<Map<string, OriginalTransform>>(new Map());
+
   const [renderError, setRenderError] = useState("");
 
-  const dimensions = useMemo(() => {
+  const dimensions = useMemo<AvatarDimensions>(() => {
     const height = toNumber(body.height);
     const weight = toNumber(body.weight);
     const chest = toNumber(body.chest);
@@ -55,6 +275,21 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
 
     const fitEase = fit === "slim" ? 1 : fit === "relaxed" ? 1.12 : 1.06;
 
+    const heightScale = clamp(height / 170, 0.86, 1.18);
+    const massScale = clamp(weight / 65, 0.82, 1.24);
+    const chestScale = clamp((chest / 92) * fitEase, 0.82, 1.38);
+    const waistScale = clamp((waist / 82) * fitEase, 0.78, 1.36);
+    const neckScale = clamp(neck / 38, 0.82, 1.26);
+    const armScale = clamp(arm / 30, 0.78, 1.38);
+    const sleeveScale = clamp(sleeve / 24, 0.75, 1.36);
+    const torsoScale = clamp(backLength / 64, 0.85, 1.26);
+
+    const bodyWidthScale = clamp(
+      (massScale * 0.45 + chestScale * 0.35 + waistScale * 0.2),
+      0.82,
+      1.34
+    );
+
     return {
       height,
       weight,
@@ -63,14 +298,15 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
       neck,
       arm,
       sleeve,
-      chestScale: clamp((chest / 92) * fitEase, 0.82, 1.35),
-      waistScale: clamp((waist / 82) * fitEase, 0.78, 1.32),
-      neckScale: clamp(neck / 38, 0.82, 1.25),
-      armScale: clamp(arm / 30, 0.78, 1.35),
-      sleeveScale: clamp(sleeve / 24, 0.75, 1.35),
-      torsoScale: clamp(backLength / 64, 0.85, 1.25),
-      heightScale: clamp(height / 170, 0.86, 1.18),
-      massScale: clamp(weight / 65, 0.82, 1.22),
+      heightScale,
+      massScale,
+      chestScale,
+      waistScale,
+      neckScale,
+      armScale,
+      sleeveScale,
+      torsoScale,
+      bodyWidthScale,
     };
   }, [body, fit]);
 
@@ -88,7 +324,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     const height = mount.clientHeight || 480;
 
     const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
-    camera.position.set(0, 1.35, 3.8);
+    camera.position.set(0, 1.35, 3.2);
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -100,15 +337,19 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.domElement.style.cursor = "grab";
+    renderer.domElement.addEventListener("contextmenu", (event) =>
+      event.preventDefault()
+    );
     mount.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
-    controls.minDistance = 0.85;
+    controls.minDistance = 0.75;
     controls.maxDistance = 4.5;
     controls.target.set(0, 1.05, 0);
+    controlsRef.current = controls;
 
     scene.add(new THREE.AmbientLight("#ffffff", 1.4));
 
@@ -138,11 +379,6 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
       (gltf) => {
         const model = gltf.scene;
         model.position.set(0, -1.15, 0);
-        model.scale.set(
-          2.15 * dimensions.massScale,
-          2.15 * dimensions.heightScale,
-          2.15 * dimensions.massScale
-        );
 
         model.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
@@ -161,76 +397,24 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
             material.side = THREE.DoubleSide;
             material.needsUpdate = true;
           }
-
-          const name = normalizeName(object.name);
-
-          if (name.includes("chest") || name.includes("upperbody")) {
-            object.scale.x *= dimensions.chestScale;
-            object.scale.z *= dimensions.chestScale;
-          }
-
-          if (name.includes("waist") || name.includes("hip") || name.includes("pelvis")) {
-            object.scale.x *= dimensions.waistScale;
-            object.scale.z *= dimensions.waistScale;
-          }
-
-          if (name.includes("torso") || name.includes("body")) {
-            object.scale.y *= dimensions.torsoScale;
-          }
-
-          if (name.includes("neck")) {
-            object.scale.x *= dimensions.neckScale;
-            object.scale.z *= dimensions.neckScale;
-          }
-
-          if (name.includes("arm")) {
-            object.scale.x *= dimensions.armScale;
-            object.scale.z *= dimensions.armScale;
-            object.scale.y *= dimensions.sleeveScale;
-          }
-
-          if (object.morphTargetDictionary && object.morphTargetInfluences) {
-            const morphs = object.morphTargetDictionary;
-
-            if (morphs.chest !== undefined) {
-              object.morphTargetInfluences[morphs.chest] =
-                clamp((dimensions.chestScale - 1) * 1.8, -0.5, 0.8);
-            }
-
-            if (morphs.waist !== undefined) {
-              object.morphTargetInfluences[morphs.waist] =
-                clamp((dimensions.waistScale - 1) * 1.8, -0.5, 0.8);
-            }
-
-            if (morphs.arm !== undefined) {
-              object.morphTargetInfluences[morphs.arm] =
-                clamp((dimensions.armScale - 1) * 1.8, -0.5, 0.8);
-            }
-          }
         });
+
+        originalsRef.current.clear();
+        captureOriginalTransforms(model, originalsRef.current);
+
+        modelRef.current = model;
+        applyMeasurementTransforms(model, originalsRef.current, dimensions);
 
         avatarRoot.add(model);
 
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = THREE.MathUtils.degToRad(camera.fov);
-        const distance = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 0.78;
-
-        camera.position.set(center.x, center.y + size.y * 0.12, center.z + distance);
-        camera.near = 0.01;
-        camera.far = Math.max(100, distance * 10);
-        camera.updateProjectionMatrix();
-
-        controls.target.set(center.x, center.y + size.y * 0.12, center.z);
-        controls.update();
+        if (cameraRef.current && controlsRef.current) {
+          fitCameraToModel(cameraRef.current, controlsRef.current, model);
+        }
       },
       undefined,
       () => {
         setRenderError(
-          "File /public/models/hazel-mannequin-lowpoly.glb belum ditemukan. Upload file GLB mannequin dulu."
+          "File /public/models/hazel-mannequin-lowpoly.glb belum ditemukan atau gagal dibaca."
         );
       }
     );
@@ -276,10 +460,26 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
 
       renderer.dispose();
 
+      modelRef.current = null;
+      controlsRef.current = null;
+      cameraRef.current = null;
+      originalsRef.current.clear();
+
       if (mountRef.current) {
         mountRef.current.innerHTML = "";
       }
     };
+  }, []);
+
+  useEffect(() => {
+    const model = modelRef.current;
+    const controls = controlsRef.current;
+    const camera = cameraRef.current;
+
+    if (!model || !controls || !camera) return;
+
+    applyMeasurementTransforms(model, originalsRef.current, dimensions);
+    fitCameraToModel(camera, controls, model);
   }, [dimensions]);
 
   return (
@@ -290,7 +490,7 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
             Human Mannequin GLB
           </p>
           <p className="mt-1 text-[11px] text-zinc-500">
-            Drag to rotate · Scroll to zoom · Right click disabled
+            Drag to rotate · Scroll to zoom · Body follows measurement input
           </p>
         </div>
 
