@@ -47,7 +47,7 @@ export async function GET() {
       success: true,
       data: products.map((product) => ({
         ...product,
-        imageUrl: `/api/public/products/${product.id}/image`,
+        imageUrl: "/product-images/race-team.webp",
       })),
     });
   } catch (error) {
