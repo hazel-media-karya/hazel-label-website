@@ -204,8 +204,8 @@ Warna kedua: ${secondColor}`
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-6 py-16">
-      <div className="mb-8 flex flex-wrap gap-3">
+    <section className="mx-auto w-full max-w-[1500px] px-6 py-5">
+      <div className="mb-4 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={() => setStep("body")}
@@ -232,22 +232,22 @@ Warna kedua: ${secondColor}`
       </div>
 
       {step === "body" ? (
-        <div className="grid gap-8 xl:grid-cols-[minmax(520px,0.9fr)_minmax(620px,1.1fr)]">
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8 min-w-0">
+        <div className="grid h-[calc(100vh-255px)] min-h-[480px] gap-5 overflow-hidden xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-5 min-w-0 overflow-hidden">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Generate User Anatomy
             </p>
 
-            <h2 className="mt-4 text-4xl font-semibold text-white">
+            <h2 className="mt-3 text-3xl font-semibold text-white">
               Input ukuran tubuh user
             </h2>
 
-            <p className="mt-4 text-base leading-8 text-zinc-400">
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
               Data ini dipakai untuk membuat preview anatomi tubuh, rekomendasi
               size, dan catatan pola jersey sebelum masuk ke desain.
             </p>
 
-            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <MeasurementInput
                 label="Lingkar dada"
                 value={body.chest}
@@ -301,7 +301,7 @@ Warna kedua: ${secondColor}`
                 <select
                   value={fit}
                   onChange={(event) => setFit(event.target.value as FitPreference)}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
                 >
                   <option value="slim">Slim Fit</option>
                   <option value="regular">Regular Fit</option>
@@ -313,13 +313,13 @@ Warna kedua: ${secondColor}`
             <button
               type="button"
               onClick={() => setStep("jersey")}
-              className="mt-8 rounded-full bg-[#d8b36d] px-7 py-3 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
+              className="mt-4 rounded-full bg-[#d8b36d] px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
             >
               Continue to Jersey Design
             </button>
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-6 min-w-0">
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5 min-w-0 overflow-hidden">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Body Anatomy Preview
             </p>
@@ -330,15 +330,15 @@ Warna kedua: ${secondColor}`
               recommendedSize={recommendedSize}
             />
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-black/40 p-5">
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
               <p className="text-sm text-zinc-400">Recommended Size</p>
-              <p className="mt-2 text-5xl font-black text-white">
+              <p className="mt-1 text-3xl font-black text-white">
                 {recommendedSize}
               </p>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-3 space-y-2">
                 {fitNotes.map((note) => (
-                  <p key={note} className="text-sm leading-6 text-zinc-400">
+                  <p key={note} className="text-xs leading-5 text-zinc-400">
                     • {note}
                   </p>
                 ))}
@@ -347,13 +347,13 @@ Warna kedua: ${secondColor}`
           </div>
         </div>
       ) : (
-        <div className="grid gap-8 xl:grid-cols-[minmax(520px,0.9fr)_minmax(620px,1.1fr)]">
+        <div className="grid h-[calc(100vh-255px)] min-h-[480px] gap-5 overflow-hidden xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
           <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Jersey Customizer
             </p>
 
-            <h2 className="mt-4 text-4xl font-semibold text-white">
+            <h2 className="mt-3 text-3xl font-semibold text-white">
               Custom jersey preview
             </h2>
 
@@ -363,23 +363,23 @@ Warna kedua: ${secondColor}`
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-xs font-medium text-zinc-300">
                 Player Name
                 <input
                   value={playerName}
                   onChange={(event) =>
                     setPlayerName(event.target.value.toUpperCase())
                   }
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
                 />
               </label>
 
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-xs font-medium text-zinc-300">
                 Number
                 <input
                   value={playerNumber}
                   onChange={(event) => setPlayerNumber(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
                 />
               </label>
             </div>
@@ -495,13 +495,13 @@ function MeasurementInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="text-sm font-medium text-zinc-300">
+    <label className="text-xs font-medium text-zinc-300">
       {label} <span className="text-zinc-500">(cm)</span>
       <input
         type="number"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+        className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
       />
     </label>
   );
@@ -517,7 +517,7 @@ function ColorInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="text-sm font-medium text-zinc-300">
+    <label className="text-xs font-medium text-zinc-300">
       {label}
       <input
         type="color"

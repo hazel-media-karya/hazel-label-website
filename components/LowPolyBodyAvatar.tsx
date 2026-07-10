@@ -82,7 +82,7 @@ export default function LowPolyBodyAvatar({
       scene.background = new THREE.Color("#030303");
 
       const width = mount.clientWidth || 720;
-      const height = mount.clientHeight || 560;
+      const height = mount.clientHeight || 360;
 
       const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
       camera.position.set(0, 0.8, 7.5);
@@ -254,7 +254,7 @@ export default function LowPolyBodyAvatar({
         if (!currentMount || !renderer) return;
 
         const newWidth = currentMount.clientWidth || 720;
-        const newHeight = currentMount.clientHeight || 560;
+        const newHeight = currentMount.clientHeight || 360;
 
         renderer.setSize(newWidth, newHeight, false);
         camera.aspect = newWidth / newHeight;
@@ -304,7 +304,7 @@ export default function LowPolyBodyAvatar({
   }, [dimensions, view, recommendedSize]);
 
   return (
-    <div className="mt-8 overflow-hidden rounded-[28px] border border-white/10 bg-black/60">
+    <div className="mt-4 overflow-hidden rounded-[28px] border border-white/10 bg-black/60">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
         <p className="text-xs uppercase tracking-[0.3em] text-[#d8b36d]">
           Low-Poly 3D Avatar
@@ -329,7 +329,7 @@ export default function LowPolyBodyAvatar({
       </div>
 
       <div className="relative">
-        <div ref={mountRef} className="h-[560px] w-full min-w-[520px]" />
+        <div ref={mountRef} className="h-[360px] w-full" />
 
         <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 text-xs leading-6 text-zinc-300">
           <p>Dada: {dimensions.chest} cm</p>
