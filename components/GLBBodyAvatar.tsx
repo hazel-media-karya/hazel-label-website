@@ -98,8 +98,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
-    controls.minDistance = 1.4;
-    controls.maxDistance = 6;
+    controls.minDistance = 0.85;
+    controls.maxDistance = 4.5;
     controls.target.set(0, 1.05, 0);
 
     scene.add(new THREE.AmbientLight("#ffffff", 1.4));
@@ -205,14 +205,14 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
 
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = THREE.MathUtils.degToRad(camera.fov);
-        const distance = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.18;
+        const distance = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 0.78;
 
-        camera.position.set(center.x, center.y + size.y * 0.08, center.z + distance);
+        camera.position.set(center.x, center.y + size.y * 0.12, center.z + distance);
         camera.near = 0.01;
         camera.far = Math.max(100, distance * 10);
         camera.updateProjectionMatrix();
 
-        controls.target.set(center.x, center.y + size.y * 0.08, center.z);
+        controls.target.set(center.x, center.y + size.y * 0.12, center.z);
         controls.update();
       },
       undefined,
