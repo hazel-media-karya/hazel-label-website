@@ -98,6 +98,7 @@ export default function AdminProductsForm() {
       const response = await fetch("/api/admin/product-images", {
         method: "POST",
         body: formData,
+        credentials: "same-origin",
       });
 
       const json = await response.json().catch(() => ({}));
