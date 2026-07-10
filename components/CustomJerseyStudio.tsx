@@ -232,8 +232,8 @@ Warna kedua: ${secondColor}`
       </div>
 
       {step === "body" ? (
-        <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+        <div className="grid gap-8 xl:grid-cols-[minmax(520px,0.9fr)_minmax(620px,1.1fr)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8 min-w-0">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Generate User Anatomy
             </p>
@@ -319,7 +319,7 @@ Warna kedua: ${secondColor}`
             </button>
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-6">
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-6 min-w-0">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Body Anatomy Preview
             </p>
@@ -347,7 +347,7 @@ Warna kedua: ${secondColor}`
           </div>
         </div>
       ) : (
-        <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(520px,0.9fr)_minmax(620px,1.1fr)]">
           <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Jersey Customizer
