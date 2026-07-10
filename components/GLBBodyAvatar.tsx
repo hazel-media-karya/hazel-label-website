@@ -80,7 +80,7 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     const height = mount.clientHeight || 480;
 
     const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
-    camera.position.set(0, 1.2, 6.2);
+    camera.position.set(0, 1.35, 3.8);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -98,9 +98,9 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
-    controls.minDistance = 3.8;
-    controls.maxDistance = 9;
-    controls.target.set(0, 0.6, 0);
+    controls.minDistance = 1.4;
+    controls.maxDistance = 6;
+    controls.target.set(0, 1.05, 0);
 
     scene.add(new THREE.AmbientLight("#ffffff", 1.4));
 
@@ -129,8 +129,8 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
       "/models/hazel-mannequin-lowpoly.glb",
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(0, -1.55, 0);
-        model.scale.setScalar(1.75);
+        model.position.set(0, -1.15, 0);
+        model.scale.setScalar(2.15);
 
         model.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
@@ -198,6 +198,22 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
         });
 
         avatarRoot.add(model);
+
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = THREE.MathUtils.degToRad(camera.fov);
+        const distance = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.18;
+
+        camera.position.set(center.x, center.y + size.y * 0.08, center.z + distance);
+        camera.near = 0.01;
+        camera.far = Math.max(100, distance * 10);
+        camera.updateProjectionMatrix();
+
+        controls.target.set(center.x, center.y + size.y * 0.08, center.z);
+        controls.update();
       },
       undefined,
       () => {
