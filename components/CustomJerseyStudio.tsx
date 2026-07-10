@@ -3,6 +3,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type ViewMode = "front" | "back" | "left" | "right";
+type FitPreference = "slim" | "regular" | "relaxed";
+
+type BodyMeasurements = {
+  chest: string;
+  waist: string;
+  frontLength: string;
+  armCircumference: string;
+  sleeveLength: string;
+  neck: string;
+  backLength: string;
+  pocketLength: string;
+};
+
+const defaultBody: BodyMeasurements = {
+  chest: "92",
+  waist: "82",
+  frontLength: "58",
+  armCircumference: "30",
+  sleeveLength: "24",
+  neck: "38",
+  backLength: "64",
+  pocketLength: "18",
+};
 
 const viewRotation: Record<ViewMode, string> = {
   front: "rotateY(0deg)",
@@ -11,8 +34,73 @@ const viewRotation: Record<ViewMode, string> = {
   right: "rotateY(-55deg)",
 };
 
+function toNumber(value: string) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getSizeRecommendation(chest: number, waist: number) {
+  const base = Math.max(chest, waist + 8);
+
+  if (base <= 86) return "S";
+  if (base <= 94) return "M";
+  if (base <= 102) return "L";
+  if (base <= 110) return "XL";
+  return "CUSTOM";
+}
+
+function getFitNotes(body: BodyMeasurements, fit: FitPreference) {
+  const chest = toNumber(body.chest);
+  const waist = toNumber(body.waist);
+  const frontLength = toNumber(body.frontLength);
+  const backLength = toNumber(body.backLength);
+  const arm = toNumber(body.armCircumference);
+  const neck = toNumber(body.neck);
+  const pocket = toNumber(body.pocketLength);
+
+  const notes: string[] = [];
+
+  if (chest - waist >= 12) {
+    notes.push("Bentuk badan cenderung athletic; bagian dada perlu ruang lebih.");
+  }
+
+  if (waist > chest - 4) {
+    notes.push("Area perut perlu pola regular agar jersey tidak terlalu ketat.");
+  }
+
+  if (backLength - frontLength >= 5) {
+    notes.push("Panjang belakang lebih dominan; cocok untuk cycling cut.");
+  }
+
+  if (arm >= 34) {
+    notes.push("Lingkar lengan besar; sleeve opening perlu dibuat lebih longgar.");
+  }
+
+  if (neck >= 42) {
+    notes.push("Lingkar leher besar; kerah sebaiknya tidak terlalu rapat.");
+  }
+
+  if (pocket < 16) {
+    notes.push("Panjang saku pendek; kapasitas pocket belakang terbatas.");
+  }
+
+  if (fit === "slim") {
+    notes.push("Fit preference: slim fit, pola akan dibuat lebih menempel.");
+  } else if (fit === "relaxed") {
+    notes.push("Fit preference: relaxed fit, pola akan diberi ease lebih longgar.");
+  } else {
+    notes.push("Fit preference: regular fit, cocok untuk pemakaian komunitas dan event.");
+  }
+
+  return notes;
+}
+
 export default function CustomJerseyStudio() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [step, setStep] = useState<"body" | "jersey">("body");
+  const [body, setBody] = useState<BodyMeasurements>(defaultBody);
+  const [fit, setFit] = useState<FitPreference>("regular");
 
   const [view, setView] = useState<ViewMode>("front");
   const [mainColor, setMainColor] = useState("#111111");
@@ -22,11 +110,78 @@ export default function CustomJerseyStudio() {
   const [playerNumber, setPlayerNumber] = useState("07");
   const [artworkUrl, setArtworkUrl] = useState("");
 
+  const chest = toNumber(body.chest);
+  const waist = toNumber(body.waist);
+  const frontLength = toNumber(body.frontLength);
+  const backLength = toNumber(body.backLength);
+  const sleeveLength = toNumber(body.sleeveLength);
+  const armCircumference = toNumber(body.armCircumference);
+  const neck = toNumber(body.neck);
+  const pocketLength = toNumber(body.pocketLength);
+
+  const recommendedSize = useMemo(
+    () => getSizeRecommendation(chest, waist),
+    [chest, waist]
+  );
+
+  const fitNotes = useMemo(
+    () => getFitNotes(body, fit),
+    [body, fit]
+  );
+
+  const bodyVisual = useMemo(() => {
+    const shoulderWidth = Math.min(170, Math.max(110, chest * 1.45));
+    const waistWidth = Math.min(155, Math.max(85, waist * 1.35));
+    const torsoHeight = Math.min(310, Math.max(220, backLength * 4));
+    const sleeveHeight = Math.min(130, Math.max(70, sleeveLength * 4));
+    const armWidth = Math.min(62, Math.max(36, armCircumference * 1.65));
+    const neckWidth = Math.min(78, Math.max(42, neck * 1.65));
+    const pocketHeight = Math.min(95, Math.max(45, pocketLength * 4));
+
+    return {
+      shoulderWidth,
+      waistWidth,
+      torsoHeight,
+      sleeveHeight,
+      armWidth,
+      neckWidth,
+      pocketHeight,
+    };
+  }, [chest, waist, backLength, sleeveLength, armCircumference, neck, pocketLength]);
+
   const whatsappText = useMemo(() => {
     return encodeURIComponent(
-      `Halo Hazel Apparel, saya ingin custom jersey.\n\nNama: ${playerName}\nNomor: ${playerNumber}\nWarna utama: ${mainColor}\nWarna aksen: ${accentColor}\nWarna kedua: ${secondColor}\nView terakhir: ${view}`
+      `Halo Hazel Apparel, saya ingin custom jersey.
+
+BODY MEASUREMENT:
+Lingkar dada: ${body.chest} cm
+Lingkar perut: ${body.waist} cm
+Panjang depan kerah-bawah: ${body.frontLength} cm
+Lingkar lengan: ${body.armCircumference} cm
+Panjang lengan: ${body.sleeveLength} cm
+Lingkar leher: ${body.neck} cm
+Panjang belakang: ${body.backLength} cm
+Panjang saku: ${body.pocketLength} cm
+Fit: ${fit}
+Rekomendasi size: ${recommendedSize}
+
+JERSEY:
+Nama: ${playerName}
+Nomor: ${playerNumber}
+Warna utama: ${mainColor}
+Warna aksen: ${accentColor}
+Warna kedua: ${secondColor}`
     );
-  }, [playerName, playerNumber, mainColor, accentColor, secondColor, view]);
+  }, [
+    body,
+    fit,
+    recommendedSize,
+    playerName,
+    playerNumber,
+    mainColor,
+    accentColor,
+    secondColor,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -35,6 +190,13 @@ export default function CustomJerseyStudio() {
       }
     };
   }, [artworkUrl]);
+
+  function updateBody(key: keyof BodyMeasurements, value: string) {
+    setBody((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
 
   function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -59,212 +221,445 @@ export default function CustomJerseyStudio() {
   }
 
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[1fr_0.9fr]">
-      <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
-        <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
-          Hazel 3D Studio MVP
-        </p>
+    <section className="mx-auto w-full max-w-7xl px-6 py-16">
+      <div className="mb-8 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => setStep("body")}
+          className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${
+            step === "body"
+              ? "border-[#d8b36d] bg-[#d8b36d] text-black"
+              : "border-white/15 text-white hover:bg-white/10"
+          }`}
+        >
+          1. Body Measurement
+        </button>
 
-        <h1 className="mt-4 max-w-2xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
-          Create your custom jersey preview
-        </h1>
+        <button
+          type="button"
+          onClick={() => setStep("jersey")}
+          className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${
+            step === "jersey"
+              ? "border-[#d8b36d] bg-[#d8b36d] text-black"
+              : "border-white/15 text-white hover:bg-white/10"
+          }`}
+        >
+          2. Jersey Customizer
+        </button>
+      </div>
 
-        <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-400">
-          Upload artwork, adjust colors, add player identity, and preview the
-          jersey from multiple angles before submitting your custom order.
-        </p>
+      {step === "body" ? (
+        <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+              Generate User Anatomy
+            </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-zinc-300">
-            Player Name
-            <input
-              value={playerName}
-              onChange={(event) => setPlayerName(event.target.value.toUpperCase())}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
-              placeholder="HAZEL"
-            />
-          </label>
+            <h2 className="mt-4 text-4xl font-semibold text-white">
+              Input ukuran tubuh user
+            </h2>
 
-          <label className="text-sm font-medium text-zinc-300">
-            Number
-            <input
-              value={playerNumber}
-              onChange={(event) => setPlayerNumber(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
-              placeholder="07"
-            />
-          </label>
-        </div>
+            <p className="mt-4 text-base leading-8 text-zinc-400">
+              Data ini dipakai untuk membuat preview anatomi tubuh, rekomendasi
+              size, dan catatan pola jersey sebelum masuk ke desain.
+            </p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <label className="text-sm font-medium text-zinc-300">
-            Main Color
-            <input
-              type="color"
-              value={mainColor}
-              onChange={(event) => setMainColor(event.target.value)}
-              className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black"
-            />
-          </label>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              <MeasurementInput
+                label="Lingkar dada"
+                value={body.chest}
+                onChange={(value) => updateBody("chest", value)}
+              />
 
-          <label className="text-sm font-medium text-zinc-300">
-            Accent
-            <input
-              type="color"
-              value={accentColor}
-              onChange={(event) => setAccentColor(event.target.value)}
-              className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black"
-            />
-          </label>
+              <MeasurementInput
+                label="Lingkar perut"
+                value={body.waist}
+                onChange={(value) => updateBody("waist", value)}
+              />
 
-          <label className="text-sm font-medium text-zinc-300">
-            Secondary
-            <input
-              type="color"
-              value={secondColor}
-              onChange={(event) => setSecondColor(event.target.value)}
-              className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black"
-            />
-          </label>
-        </div>
+              <MeasurementInput
+                label="Panjang kerah sampai ujung bawah jersey"
+                value={body.frontLength}
+                onChange={(value) => updateBody("frontLength", value)}
+              />
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={handleUpload}
-            className="hidden"
-          />
+              <MeasurementInput
+                label="Panjang jersey bagian belakang"
+                value={body.backLength}
+                onChange={(value) => updateBody("backLength", value)}
+              />
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="rounded-full bg-[#d8b36d] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
-          >
-            Upload Design
-          </button>
+              <MeasurementInput
+                label="Lingkar lengan"
+                value={body.armCircumference}
+                onChange={(value) => updateBody("armCircumference", value)}
+              />
 
-          {artworkUrl ? (
+              <MeasurementInput
+                label="Panjang lengan"
+                value={body.sleeveLength}
+                onChange={(value) => updateBody("sleeveLength", value)}
+              />
+
+              <MeasurementInput
+                label="Lingkar leher"
+                value={body.neck}
+                onChange={(value) => updateBody("neck", value)}
+              />
+
+              <MeasurementInput
+                label="Panjang saku"
+                value={body.pocketLength}
+                onChange={(value) => updateBody("pocketLength", value)}
+              />
+
+              <label className="text-sm font-medium text-zinc-300 sm:col-span-2">
+                Fit Preference
+                <select
+                  value={fit}
+                  onChange={(event) => setFit(event.target.value as FitPreference)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+                >
+                  <option value="slim">Slim Fit</option>
+                  <option value="regular">Regular Fit</option>
+                  <option value="relaxed">Relaxed Fit</option>
+                </select>
+              </label>
+            </div>
+
             <button
               type="button"
-              onClick={() => setArtworkUrl("")}
-              className="rounded-full border border-red-500/30 px-6 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+              onClick={() => setStep("jersey")}
+              className="mt-8 rounded-full bg-[#d8b36d] px-7 py-3 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
             >
-              Remove Design
+              Continue to Jersey Design
             </button>
-          ) : null}
+          </div>
 
-          <a
-            href={`https://wa.me/?text=${whatsappText}`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Submit Custom Order
-          </a>
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-6">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+              Body Anatomy Preview
+            </p>
+
+            <div className="mt-8 flex min-h-[520px] items-center justify-center rounded-[28px] border border-white/10 bg-black/60 p-8">
+              <div className="relative flex flex-col items-center">
+                <div
+                  className="rounded-full border border-[#d8b36d]/40 bg-[#d8b36d]/30"
+                  style={{
+                    width: bodyVisual.neckWidth + 44,
+                    height: bodyVisual.neckWidth + 44,
+                  }}
+                />
+
+                <div
+                  className="relative mt-[-6px] rounded-t-[70px] border border-white/15 bg-gradient-to-b from-zinc-800 to-zinc-950 shadow-2xl"
+                  style={{
+                    width: bodyVisual.shoulderWidth,
+                    height: bodyVisual.torsoHeight,
+                    clipPath: `polygon(8% 0, 92% 0, 80% 100%, 20% 100%)`,
+                  }}
+                >
+                  <div
+                    className="absolute left-1/2 top-0 h-16 -translate-x-1/2 rounded-b-full bg-black"
+                    style={{ width: bodyVisual.neckWidth }}
+                  />
+
+                  <div
+                    className="absolute bottom-12 left-1/2 h-16 -translate-x-1/2 rounded-xl border border-[#d8b36d]/40 bg-[#d8b36d]/10"
+                    style={{
+                      width: Math.max(90, bodyVisual.waistWidth * 0.8),
+                      height: bodyVisual.pocketHeight,
+                    }}
+                  >
+                    <p className="mt-5 text-center text-[10px] uppercase tracking-[0.25em] text-[#d8b36d]">
+                      Pocket
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className="absolute top-[84px] rounded-full border border-white/10 bg-zinc-900"
+                  style={{
+                    left: `calc(50% - ${bodyVisual.shoulderWidth / 2 + bodyVisual.armWidth - 4}px)`,
+                    width: bodyVisual.armWidth,
+                    height: bodyVisual.sleeveHeight,
+                    transform: "rotate(12deg)",
+                  }}
+                />
+
+                <div
+                  className="absolute top-[84px] rounded-full border border-white/10 bg-zinc-900"
+                  style={{
+                    right: `calc(50% - ${bodyVisual.shoulderWidth / 2 + bodyVisual.armWidth - 4}px)`,
+                    width: bodyVisual.armWidth,
+                    height: bodyVisual.sleeveHeight,
+                    transform: "rotate(-12deg)",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/40 p-5">
+              <p className="text-sm text-zinc-400">Recommended Size</p>
+              <p className="mt-2 text-5xl font-black text-white">
+                {recommendedSize}
+              </p>
+
+              <div className="mt-5 space-y-3">
+                {fitNotes.map((note) => (
+                  <p key={note} className="text-sm leading-6 text-zinc-400">
+                    • {note}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+      ) : (
+        <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+              Jersey Customizer
+            </p>
 
-        <p className="mt-4 text-xs leading-6 text-zinc-500">
-          MVP ini hanya preview di browser. Upload desain di sini tidak disimpan
-          ke database sampai sistem order final dibuat.
+            <h2 className="mt-4 text-4xl font-semibold text-white">
+              Custom jersey preview
+            </h2>
+
+            <div className="mt-6 rounded-2xl border border-[#d8b36d]/25 bg-[#d8b36d]/10 p-4 text-sm leading-7 text-[#f1d7a2]">
+              Size recommendation: <strong>{recommendedSize}</strong> · Fit:{" "}
+              <strong>{fit}</strong>
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-zinc-300">
+                Player Name
+                <input
+                  value={playerName}
+                  onChange={(event) =>
+                    setPlayerName(event.target.value.toUpperCase())
+                  }
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+                />
+              </label>
+
+              <label className="text-sm font-medium text-zinc-300">
+                Number
+                <input
+                  value={playerNumber}
+                  onChange={(event) => setPlayerNumber(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <ColorInput label="Main Color" value={mainColor} onChange={setMainColor} />
+              <ColorInput label="Accent" value={accentColor} onChange={setAccentColor} />
+              <ColorInput label="Secondary" value={secondColor} onChange={setSecondColor} />
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleUpload}
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-full bg-[#d8b36d] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
+              >
+                Upload Design
+              </button>
+
+              {artworkUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setArtworkUrl("")}
+                  className="rounded-full border border-red-500/30 px-6 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+                >
+                  Remove Design
+                </button>
+              ) : null}
+
+              <a
+                href={`https://wa.me/?text=${whatsappText}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Submit Custom Order
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+                Live Preview
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {(["front", "back", "left", "right"] as ViewMode[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setView(item)}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold capitalize transition ${
+                      view === item
+                        ? "border-[#d8b36d] bg-[#d8b36d] text-black"
+                        : "border-white/15 text-zinc-300 hover:bg-white/10"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 flex min-h-[620px] items-center justify-center rounded-[28px] border border-white/10 bg-black/60 p-8 [perspective:1200px]">
+              <div
+                className="relative h-[520px] w-[330px] transition-transform duration-700 [transform-style:preserve-3d]"
+                style={{ transform: viewRotation[view] }}
+              >
+                <JerseyFace
+                  side="front"
+                  mainColor={mainColor}
+                  accentColor={accentColor}
+                  secondColor={secondColor}
+                  artworkUrl={artworkUrl}
+                  playerName={playerName}
+                  playerNumber={playerNumber}
+                />
+
+                <JerseyFace
+                  side="back"
+                  mainColor={mainColor}
+                  accentColor={accentColor}
+                  secondColor={secondColor}
+                  artworkUrl=""
+                  playerName={playerName}
+                  playerNumber={playerNumber}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MeasurementInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-sm font-medium text-zinc-300">
+      {label} <span className="text-zinc-500">(cm)</span>
+      <input
+        type="number"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white outline-none"
+      />
+    </label>
+  );
+}
+
+function ColorInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-sm font-medium text-zinc-300">
+      {label}
+      <input
+        type="color"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black"
+      />
+    </label>
+  );
+}
+
+function JerseyFace({
+  side,
+  mainColor,
+  accentColor,
+  secondColor,
+  artworkUrl,
+  playerName,
+  playerNumber,
+}: {
+  side: "front" | "back";
+  mainColor: string;
+  accentColor: string;
+  secondColor: string;
+  artworkUrl: string;
+  playerName: string;
+  playerNumber: string;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 rounded-[42px] border border-white/15 shadow-2xl [backface-visibility:hidden] ${
+        side === "back" ? "[transform:rotateY(180deg)]" : ""
+      }`}
+      style={{
+        background:
+          side === "front"
+            ? `
+              radial-gradient(circle at 50% 18%, ${accentColor} 0 7%, transparent 8%),
+              linear-gradient(135deg, transparent 0 20%, ${secondColor} 21% 34%, transparent 35%),
+              linear-gradient(225deg, transparent 0 18%, ${accentColor} 19% 28%, transparent 29%),
+              ${mainColor}
+            `
+            : `
+              linear-gradient(45deg, transparent 0 20%, ${accentColor} 21% 28%, transparent 29%),
+              linear-gradient(315deg, transparent 0 18%, ${secondColor} 19% 33%, transparent 34%),
+              ${mainColor}
+            `,
+        clipPath:
+          "polygon(28% 0, 72% 0, 94% 18%, 86% 42%, 76% 38%, 76% 100%, 24% 100%, 24% 38%, 14% 42%, 6% 18%)",
+      }}
+    >
+      {artworkUrl ? (
+        <img
+          src={artworkUrl}
+          alt="Uploaded jersey artwork"
+          className="absolute inset-x-[13%] top-[28%] h-[38%] w-[74%] rounded-2xl object-cover opacity-80 mix-blend-screen"
+        />
+      ) : null}
+
+      <div className="absolute left-1/2 top-[12%] h-16 w-24 -translate-x-1/2 rounded-b-full border-b-4 border-black/60 bg-black/40" />
+
+      <div className="absolute inset-x-0 top-[42%] text-center">
+        <p className="text-3xl font-black tracking-[0.08em] text-white drop-shadow-lg">
+          {playerName || "HAZEL"}
+        </p>
+        <p className="mt-4 text-7xl font-black text-white/95 drop-shadow-lg">
+          {playerNumber || "07"}
         </p>
       </div>
 
-      <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
-            Live Preview
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {(["front", "back", "left", "right"] as ViewMode[]).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setView(item)}
-                className={`rounded-full border px-4 py-2 text-xs font-semibold capitalize transition ${
-                  view === item
-                    ? "border-[#d8b36d] bg-[#d8b36d] text-black"
-                    : "border-white/15 text-zinc-300 hover:bg-white/10"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-8 flex min-h-[620px] items-center justify-center rounded-[28px] border border-white/10 bg-black/60 p-8 [perspective:1200px]">
-          <div
-            className="relative h-[520px] w-[330px] transition-transform duration-700 [transform-style:preserve-3d]"
-            style={{ transform: viewRotation[view] }}
-          >
-            <div
-              className="absolute inset-0 rounded-[42px] border border-white/15 shadow-2xl [backface-visibility:hidden]"
-              style={{
-                background: `
-                  radial-gradient(circle at 50% 18%, ${accentColor} 0 7%, transparent 8%),
-                  linear-gradient(135deg, transparent 0 20%, ${secondColor} 21% 34%, transparent 35%),
-                  linear-gradient(225deg, transparent 0 18%, ${accentColor} 19% 28%, transparent 29%),
-                  ${mainColor}
-                `,
-                clipPath:
-                  "polygon(28% 0, 72% 0, 94% 18%, 86% 42%, 76% 38%, 76% 100%, 24% 100%, 24% 38%, 14% 42%, 6% 18%)",
-              }}
-            >
-              {artworkUrl ? (
-                <img
-                  src={artworkUrl}
-                  alt="Uploaded jersey artwork"
-                  className="absolute inset-x-[13%] top-[28%] h-[38%] w-[74%] rounded-2xl object-cover opacity-80 mix-blend-screen"
-                />
-              ) : null}
-
-              <div className="absolute left-1/2 top-[12%] h-16 w-24 -translate-x-1/2 rounded-b-full border-b-4 border-black/60 bg-black/40" />
-
-              <div className="absolute inset-x-0 top-[42%] text-center">
-                <p className="text-3xl font-black tracking-[0.08em] text-white drop-shadow-lg">
-                  {playerName || "HAZEL"}
-                </p>
-                <p className="mt-4 text-7xl font-black text-white/95 drop-shadow-lg">
-                  {playerNumber || "07"}
-                </p>
-              </div>
-
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.35em] text-white/70">
-                Hazel Apparel
-              </div>
-            </div>
-
-            <div
-              className="absolute inset-0 rounded-[42px] border border-white/15 shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)]"
-              style={{
-                background: `
-                  linear-gradient(45deg, transparent 0 20%, ${accentColor} 21% 28%, transparent 29%),
-                  linear-gradient(315deg, transparent 0 18%, ${secondColor} 19% 33%, transparent 34%),
-                  ${mainColor}
-                `,
-                clipPath:
-                  "polygon(28% 0, 72% 0, 94% 18%, 86% 42%, 76% 38%, 76% 100%, 24% 100%, 24% 38%, 14% 42%, 6% 18%)",
-              }}
-            >
-              <div className="absolute inset-x-0 top-[28%] text-center">
-                <p className="text-4xl font-black tracking-[0.1em] text-white">
-                  {playerName || "HAZEL"}
-                </p>
-                <p className="mt-8 text-8xl font-black text-white">
-                  {playerNumber || "07"}
-                </p>
-              </div>
-
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.35em] text-white/70">
-                Custom Teamwear
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.35em] text-white/70">
+        {side === "front" ? "Hazel Apparel" : "Custom Teamwear"}
       </div>
-    </section>
+    </div>
   );
 }
