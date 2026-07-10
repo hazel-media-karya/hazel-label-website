@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Product = {
   id: string;
@@ -38,24 +38,8 @@ function inputClass() {
   return "mt-2 w-full rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30";
 }
 
-function labelClass() {
-  return "text-sm font-medium text-zinc-300";
-}
-
 function normalizeImageUrl(value: string) {
   return value.trim();
-}
-
-function isValidImageUrl(value: string) {
-  const imageUrl = normalizeImageUrl(value);
-
-  if (!imageUrl) return true;
-
-  return (
-    imageUrl.startsWith("/product-images/") ||
-    imageUrl.startsWith("http://") ||
-    imageUrl.startsWith("https://")
-  );
 }
 
 function productPayload(form: ProductForm) {
@@ -71,11 +55,14 @@ function productPayload(form: ProductForm) {
 }
 
 export default function AdminProductsForm() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductForm>(defaultForm);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
 
   async function loadProducts() {
@@ -100,6 +87,59 @@ export default function AdminProductsForm() {
     loadProducts();
   }, []);
 
+  async function uploadImage(file: File) {
+    setUploading(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/admin/product-images", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok || !json.success || !json.imageUrl) {
+        throw new Error(json.message || "Gagal upload gambar.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        imageUrl: json.imageUrl,
+      }));
+
+      setMessage("Gambar berhasil diupload dan dioptimasi.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Gagal upload gambar.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("File harus berupa gambar.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Ukuran gambar maksimal 5MB.");
+      return;
+    }
+
+    uploadImage(file);
+  }
+
   function validateBeforeSave() {
     if (!form.name.trim()) {
       setMessage("Nama produk wajib diisi.");
@@ -107,16 +147,7 @@ export default function AdminProductsForm() {
     }
 
     if (form.imageUrl.trim().startsWith("data:")) {
-      setMessage(
-        "Gambar base64 tidak boleh disimpan. Gunakan path seperti /product-images/race-team.webp."
-      );
-      return false;
-    }
-
-    if (!isValidImageUrl(form.imageUrl)) {
-      setMessage(
-        "Image URL tidak valid. Gunakan /product-images/file.webp atau URL http/https."
-      );
+      setMessage("Base64 tidak boleh disimpan. Upload gambar ulang.");
       return false;
     }
 
@@ -148,9 +179,7 @@ export default function AdminProductsForm() {
       setForm(defaultForm);
       await loadProducts();
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Gagal menambahkan produk."
-      );
+      setMessage(error instanceof Error ? error.message : "Gagal menambahkan produk.");
     } finally {
       setSaving(false);
     }
@@ -186,9 +215,7 @@ export default function AdminProductsForm() {
       setForm(defaultForm);
       await loadProducts();
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Gagal memperbarui produk."
-      );
+      setMessage(error instanceof Error ? error.message : "Gagal memperbarui produk.");
     } finally {
       setSaving(false);
     }
@@ -218,17 +245,8 @@ export default function AdminProductsForm() {
       setMessage("Produk berhasil dihapus.");
       await loadProducts();
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Gagal menghapus produk."
-      );
+      setMessage(error instanceof Error ? error.message : "Gagal menghapus produk.");
     }
-  }
-
-  function removeImage() {
-    setForm((current) => ({
-      ...current,
-      imageUrl: "",
-    }));
   }
 
   function startEdit(product: Product) {
@@ -268,131 +286,114 @@ export default function AdminProductsForm() {
         </h2>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
-          <label className={labelClass()}>
+          <label className="text-sm font-medium text-zinc-300">
             Product Name
             <input
               value={form.name}
-              onChange={(event) =>
-                setForm({ ...form, name: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
               className={inputClass()}
               placeholder="Cycling Jersey Premium"
             />
           </label>
 
-          <label className={labelClass()}>
+          <label className="text-sm font-medium text-zinc-300">
             Category
             <input
               value={form.category}
-              onChange={(event) =>
-                setForm({ ...form, category: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, category: event.target.value })}
               className={inputClass()}
               placeholder="Custom Jersey"
             />
           </label>
 
-          <label className={labelClass()}>
+          <label className="text-sm font-medium text-zinc-300">
             Price From
             <input
               value={form.priceFrom}
-              onChange={(event) =>
-                setForm({ ...form, priceFrom: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, priceFrom: event.target.value })}
               className={inputClass()}
               placeholder="350000"
             />
           </label>
 
-          <label className={labelClass()}>
+          <label className="text-sm font-medium text-zinc-300">
             Sort Order
             <input
               value={form.sortOrder}
-              onChange={(event) =>
-                setForm({ ...form, sortOrder: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, sortOrder: event.target.value })}
               className={inputClass()}
               placeholder="0"
             />
           </label>
 
-          <label className={`${labelClass()} md:col-span-2`}>
-            Product Image URL / Path
-            <input
-              value={form.imageUrl}
-              onChange={(event) =>
-                setForm({ ...form, imageUrl: event.target.value })
-              }
-              className={inputClass()}
-              placeholder="/product-images/race-team.webp"
-            />
-            <p className="mt-2 text-xs leading-6 text-zinc-500">
-              Upload gambar WebP/JPG ke folder public/product-images, lalu isi
-              path di sini. Jangan gunakan base64.
-            </p>
-          </label>
+          <div className="md:col-span-2">
+            <p className="text-sm font-medium text-zinc-300">Product Image</p>
 
-          <div className="md:col-span-2 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                setForm({
-                  ...form,
-                  imageUrl: "/product-images/race-team.webp",
-                })
-              }
-              className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              Use Race Team Image
-            </button>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
 
-            {form.imageUrl.trim() ? (
               <button
                 type="button"
-                onClick={removeImage}
-                className="rounded-full border border-red-500/30 px-5 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-60"
               >
-                Remove Image
+                {uploading ? "Uploading..." : "Upload Image"}
               </button>
+
+              {form.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, imageUrl: "" })}
+                  className="rounded-full border border-red-500/30 px-6 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+                >
+                  Remove Image
+                </button>
+              ) : null}
+            </div>
+
+            <p className="mt-2 text-xs leading-6 text-zinc-500">
+              JPG/PNG/WebP maksimal 5MB. Sistem otomatis mengoptimasi gambar lewat Cloudinary dan database hanya menyimpan URL.
+            </p>
+
+            {form.imageUrl ? (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-4">
+                <p className="text-xs uppercase tracking-[0.25em] text-[#d8b36d]">
+                  Image Preview
+                </p>
+                <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black">
+                  <img
+                    src={form.imageUrl}
+                    alt="Product preview"
+                    className="max-h-[420px] w-full object-cover"
+                  />
+                </div>
+              </div>
             ) : null}
           </div>
 
-          {form.imageUrl.trim() ? (
-            <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/40 p-4">
-              <p className="text-xs uppercase tracking-[0.25em] text-[#d8b36d]">
-                Image Preview
-              </p>
-              <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black">
-                <img
-                  src={form.imageUrl.trim()}
-                  alt="Product preview"
-                  className="max-h-[360px] w-full object-cover"
-                />
-              </div>
-            </div>
-          ) : null}
-
-          <label className={`${labelClass()} md:col-span-2`}>
+          <label className="md:col-span-2 text-sm font-medium text-zinc-300">
             Description
             <textarea
               value={form.description}
-              onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
               className={`${inputClass()} min-h-[130px]`}
               placeholder="Premium custom jersey for cycling teams and communities."
             />
           </label>
 
-          <label className={labelClass()}>
+          <label className="text-sm font-medium text-zinc-300">
             Status
             <select
               value={form.isActive ? "active" : "inactive"}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  isActive: event.target.value === "active",
-                })
+                setForm({ ...form, isActive: event.target.value === "active" })
               }
               className={inputClass()}
             >
@@ -416,14 +417,10 @@ export default function AdminProductsForm() {
           <button
             type="button"
             onClick={editingProductId ? updateProduct : createProduct}
-            disabled={saving || !form.name.trim()}
+            disabled={saving || uploading || !form.name.trim()}
             className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving
-              ? "Saving..."
-              : editingProductId
-                ? "Update Product"
-                : "Add Product"}
+            {saving ? "Saving..." : editingProductId ? "Update Product" : "Add Product"}
           </button>
         </div>
       </section>
@@ -438,83 +435,57 @@ export default function AdminProductsForm() {
           <p className="mt-6 text-sm text-zinc-400">Loading products...</p>
         ) : products.length === 0 ? (
           <p className="mt-6 rounded-xl border border-dashed border-white/10 px-4 py-6 text-sm text-zinc-500">
-            Belum ada produk. Tambahkan produk pertama dari form di atas.
+            Belum ada produk.
           </p>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.05] text-zinc-400">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Image</th>
-                  <th className="px-4 py-3 font-medium">Product</th>
-                  <th className="px-4 py-3 font-medium">Category</th>
-                  <th className="px-4 py-3 font-medium">Price From</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium text-right">Action</th>
-                </tr>
-              </thead>
+          <div className="mt-6 grid gap-4">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="grid gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[160px_1fr_auto]"
+              >
+                <div className="h-28 overflow-hidden rounded-xl border border-white/10 bg-black">
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-zinc-600">
+                      No Image
+                    </div>
+                  )}
+                </div>
 
-              <tbody className="divide-y divide-white/10">
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-4 py-4">
-                      <div className="flex h-14 w-20 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black">
-                        {product.imageUrl ? (
-                          <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-                            No Image
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                <div>
+                  <p className="font-semibold text-white">{product.name}</p>
+                  <p className="mt-1 text-sm text-zinc-500">/{product.slug}</p>
+                  <p className="mt-3 text-sm text-zinc-300">{product.category}</p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Rp {product.priceFrom.toLocaleString("id-ID")}
+                  </p>
+                </div>
 
-                    <td className="px-4 py-4">
-                      <p className="font-medium text-white">{product.name}</p>
-                      <p className="mt-1 text-xs text-zinc-500">
-                        /{product.slug}
-                      </p>
-                    </td>
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(product)}
+                    className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-zinc-200 transition hover:bg-white/10"
+                  >
+                    Edit
+                  </button>
 
-                    <td className="px-4 py-4 text-zinc-300">
-                      {product.category}
-                    </td>
-
-                    <td className="px-4 py-4 text-zinc-300">
-                      Rp {product.priceFrom.toLocaleString("id-ID")}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300">
-                        {product.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(product)}
-                        className="mr-2 rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-zinc-200 transition hover:bg-white/10"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => deleteProduct(product.id)}
-                        className="rounded-full border border-red-500/30 px-4 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  <button
+                    type="button"
+                    onClick={() => deleteProduct(product.id)}
+                    className="rounded-full border border-red-500/30 px-4 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
