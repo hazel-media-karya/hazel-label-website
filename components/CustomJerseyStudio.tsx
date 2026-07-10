@@ -232,8 +232,8 @@ Warna kedua: ${secondColor}`
       </div>
 
       {step === "body" ? (
-        <div className="grid h-[calc(100vh-255px)] min-h-[480px] gap-5 overflow-hidden xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-5 min-w-0 overflow-hidden">
+        <div className="grid gap-5 xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-5 min-w-0">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Generate User Anatomy
             </p>
@@ -319,7 +319,7 @@ Warna kedua: ${secondColor}`
             </button>
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5 min-w-0 overflow-hidden">
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5 min-w-0">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Body Anatomy Preview
             </p>
@@ -347,7 +347,7 @@ Warna kedua: ${secondColor}`
           </div>
         </div>
       ) : (
-        <div className="grid h-[calc(100vh-255px)] min-h-[480px] gap-5 overflow-hidden xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
           <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
             <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
               Jersey Customizer
