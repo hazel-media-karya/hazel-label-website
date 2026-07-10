@@ -17,6 +17,21 @@ function getPrisma() {
   return new PrismaClient({ adapter });
 }
 
+function safeProductImageUrl(imageUrl: string | null) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("data:")) return null;
+
+  if (
+    imageUrl.startsWith("/product-images/") ||
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  ) {
+    return imageUrl;
+  }
+
+  return null;
+}
+
 export async function GET() {
   const prisma = getPrisma();
 
@@ -25,10 +40,7 @@ export async function GET() {
       where: {
         isActive: true,
       },
-      orderBy: [
-        { sortOrder: "asc" },
-        { createdAt: "desc" },
-      ],
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       select: {
         id: true,
         name: true,
@@ -36,6 +48,7 @@ export async function GET() {
         category: true,
         description: true,
         priceFrom: true,
+        imageUrl: true,
         isActive: true,
         sortOrder: true,
         createdAt: true,
@@ -47,7 +60,7 @@ export async function GET() {
       success: true,
       data: products.map((product) => ({
         ...product,
-        imageUrl: "/product-images/race-team.webp",
+        imageUrl: safeProductImageUrl(product.imageUrl),
       })),
     });
   } catch (error) {

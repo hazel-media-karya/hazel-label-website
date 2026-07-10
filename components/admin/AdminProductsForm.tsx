@@ -42,6 +42,34 @@ function labelClass() {
   return "text-sm font-medium text-zinc-300";
 }
 
+function normalizeImageUrl(value: string) {
+  return value.trim();
+}
+
+function isValidImageUrl(value: string) {
+  const imageUrl = normalizeImageUrl(value);
+
+  if (!imageUrl) return true;
+
+  return (
+    imageUrl.startsWith("/product-images/") ||
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  );
+}
+
+function productPayload(form: ProductForm) {
+  return {
+    name: form.name,
+    category: form.category,
+    description: form.description,
+    priceFrom: Number(form.priceFrom || 0),
+    imageUrl: normalizeImageUrl(form.imageUrl),
+    isActive: form.isActive,
+    sortOrder: Number(form.sortOrder || 0),
+  };
+}
+
 export default function AdminProductsForm() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductForm>(defaultForm);
@@ -72,10 +100,65 @@ export default function AdminProductsForm() {
     loadProducts();
   }, []);
 
-  async function updateProduct() {
-    if (!editingProductId) {
-      return;
+  function validateBeforeSave() {
+    if (!form.name.trim()) {
+      setMessage("Nama produk wajib diisi.");
+      return false;
     }
+
+    if (form.imageUrl.trim().startsWith("data:")) {
+      setMessage(
+        "Gambar base64 tidak boleh disimpan. Gunakan path seperti /product-images/race-team.webp."
+      );
+      return false;
+    }
+
+    if (!isValidImageUrl(form.imageUrl)) {
+      setMessage(
+        "Image URL tidak valid. Gunakan /product-images/file.webp atau URL http/https."
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  async function createProduct() {
+    if (!validateBeforeSave()) return;
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productPayload(form)),
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || "Gagal menambahkan produk.");
+      }
+
+      setMessage("Produk berhasil ditambahkan.");
+      setForm(defaultForm);
+      await loadProducts();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Gagal menambahkan produk."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateProduct() {
+    if (!editingProductId) return;
+    if (!validateBeforeSave()) return;
 
     setSaving(true);
     setMessage("");
@@ -88,28 +171,24 @@ export default function AdminProductsForm() {
         },
         body: JSON.stringify({
           id: editingProductId,
-          name: form.name,
-          category: form.category,
-          description: form.description,
-          priceFrom: Number(form.priceFrom || 0),
-          imageUrl: form.imageUrl,
-          isActive: form.isActive,
-          sortOrder: Number(form.sortOrder || 0),
+          ...productPayload(form),
         }),
       });
 
-      const json = await response.json();
+      const json = await response.json().catch(() => ({}));
 
       if (!response.ok || !json.success) {
-        throw new Error("Update failed");
+        throw new Error(json.message || "Gagal memperbarui produk.");
       }
 
       setMessage("Produk berhasil diperbarui.");
       setEditingProductId(null);
       setForm(defaultForm);
       await loadProducts();
-    } catch {
-      setMessage("Gagal memperbarui produk.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Gagal memperbarui produk."
+      );
     } finally {
       setSaving(false);
     }
@@ -117,10 +196,7 @@ export default function AdminProductsForm() {
 
   async function deleteProduct(id: string) {
     const confirmed = window.confirm("Hapus produk ini?");
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     setMessage("");
 
@@ -133,52 +209,19 @@ export default function AdminProductsForm() {
         body: JSON.stringify({ id }),
       });
 
-      const json = await response.json();
+      const json = await response.json().catch(() => ({}));
 
       if (!response.ok || !json.success) {
-        throw new Error("Delete failed");
+        throw new Error(json.message || "Gagal menghapus produk.");
       }
 
       setMessage("Produk berhasil dihapus.");
       await loadProducts();
-    } catch {
-      setMessage("Gagal menghapus produk.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Gagal menghapus produk."
+      );
     }
-  }
-
-  function handleImageUpload(event: { target: HTMLInputElement }) {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setMessage("File harus berupa gambar.");
-      return;
-    }
-
-    const maxSizeMb = 2;
-    const maxSizeBytes = maxSizeMb * 1024 * 1024;
-
-    if (file.size > maxSizeBytes) {
-      setMessage(`Ukuran gambar maksimal ${maxSizeMb}MB.`);
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setForm((current) => ({
-          ...current,
-          imageUrl: reader.result as string,
-        }));
-        setMessage("Gambar berhasil dipilih. Klik Add/Update Product untuk menyimpan.");
-      }
-    };
-
-    reader.readAsDataURL(file);
   }
 
   function removeImage() {
@@ -202,59 +245,27 @@ export default function AdminProductsForm() {
       sortOrder: String(product.sortOrder),
     });
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function createProduct() {
-    setSaving(true);
+  function cancelEdit() {
+    setEditingProductId(null);
+    setForm(defaultForm);
     setMessage("");
-
-    try {
-      const response = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: form.name,
-          category: form.category,
-          description: form.description,
-          priceFrom: Number(form.priceFrom || 0),
-          imageUrl: form.imageUrl,
-          isActive: form.isActive,
-          sortOrder: Number(form.sortOrder || 0),
-        }),
-      });
-
-      const json = await response.json();
-
-      if (!response.ok || !json.success) {
-        throw new Error("Create failed");
-      }
-
-      setMessage("Produk berhasil ditambahkan.");
-      setForm(defaultForm);
-      await loadProducts();
-    } catch {
-      setMessage("Gagal menambahkan produk.");
-    } finally {
-      setSaving(false);
-    }
   }
 
   return (
     <div className="space-y-8">
       {message ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-4 text-sm text-zinc-200">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-4 text-sm text-white">
           {message}
         </div>
       ) : null}
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-        <h2 className="text-xl font-semibold text-white">Add Product</h2>
+        <h2 className="text-xl font-semibold text-white">
+          {editingProductId ? "Edit Product" : "Add Product"}
+        </h2>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <label className={labelClass()}>
@@ -284,20 +295,18 @@ export default function AdminProductsForm() {
           <label className={labelClass()}>
             Price From
             <input
-              type="number"
               value={form.priceFrom}
               onChange={(event) =>
                 setForm({ ...form, priceFrom: event.target.value })
               }
               className={inputClass()}
-              placeholder="150000"
+              placeholder="350000"
             />
           </label>
 
           <label className={labelClass()}>
             Sort Order
             <input
-              type="number"
               value={form.sortOrder}
               onChange={(event) =>
                 setForm({ ...form, sortOrder: event.target.value })
@@ -307,32 +316,45 @@ export default function AdminProductsForm() {
             />
           </label>
 
-          <div className="md:col-span-2">
-            <p className={labelClass()}>Product Image</p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <label className="cursor-pointer rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200">
-                Upload Image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-          
-              {form.imageUrl.trim() ? (
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="rounded-full border border-red-500/30 px-5 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
-                >
-                  Remove Image
-                </button>
-              ) : null}
-            </div>
-            <p className="mt-3 text-xs text-zinc-500">
-              Format gambar JPG/PNG/WebP. Maksimal 2MB.
+          <label className={`${labelClass()} md:col-span-2`}>
+            Product Image URL / Path
+            <input
+              value={form.imageUrl}
+              onChange={(event) =>
+                setForm({ ...form, imageUrl: event.target.value })
+              }
+              className={inputClass()}
+              placeholder="/product-images/race-team.webp"
+            />
+            <p className="mt-2 text-xs leading-6 text-zinc-500">
+              Upload gambar WebP/JPG ke folder public/product-images, lalu isi
+              path di sini. Jangan gunakan base64.
             </p>
+          </label>
+
+          <div className="md:col-span-2 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setForm({
+                  ...form,
+                  imageUrl: "/product-images/race-team.webp",
+                })
+              }
+              className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Use Race Team Image
+            </button>
+
+            {form.imageUrl.trim() ? (
+              <button
+                type="button"
+                onClick={removeImage}
+                className="rounded-full border border-red-500/30 px-5 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+              >
+                Remove Image
+              </button>
+            ) : null}
           </div>
 
           {form.imageUrl.trim() ? (
@@ -340,18 +362,13 @@ export default function AdminProductsForm() {
               <p className="text-xs uppercase tracking-[0.25em] text-[#d8b36d]">
                 Image Preview
               </p>
-
-              <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black">
+              <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black">
                 <img
                   src={form.imageUrl.trim()}
                   alt="Product preview"
-                  className="h-64 w-full object-cover"
+                  className="max-h-[360px] w-full object-cover"
                 />
               </div>
-
-              <p className="mt-3 text-xs text-zinc-500">
-                Preview muncul jika Image URL valid.
-              </p>
             </div>
           ) : null}
 
@@ -385,14 +402,28 @@ export default function AdminProductsForm() {
           </label>
         </div>
 
-        <div className="mt-7 flex justify-end">
+        <div className="mt-7 flex justify-end gap-3">
+          {editingProductId ? (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="rounded-full border border-white/15 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Cancel
+            </button>
+          ) : null}
+
           <button
             type="button"
             onClick={editingProductId ? updateProduct : createProduct}
             disabled={saving || !form.name.trim()}
             className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? "Saving..." : editingProductId ? "Update Product" : "Add Product"}
+            {saving
+              ? "Saving..."
+              : editingProductId
+                ? "Update Product"
+                : "Add Product"}
           </button>
         </div>
       </section>
@@ -448,22 +479,26 @@ export default function AdminProductsForm() {
                         /{product.slug}
                       </p>
                     </td>
+
                     <td className="px-4 py-4 text-zinc-300">
                       {product.category}
                     </td>
+
                     <td className="px-4 py-4 text-zinc-300">
                       Rp {product.priceFrom.toLocaleString("id-ID")}
                     </td>
+
                     <td className="px-4 py-4">
                       <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300">
                         {product.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
+
                     <td className="px-4 py-4 text-right">
                       <button
                         type="button"
                         onClick={() => startEdit(product)}
-                        className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-zinc-200 transition hover:bg-white/10"
+                        className="mr-2 rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-zinc-200 transition hover:bg-white/10"
                       >
                         Edit
                       </button>
