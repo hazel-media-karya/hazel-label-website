@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
+export async function GET() {
   return NextResponse.redirect(
-    new URL("/product-images/race-team.webp", request.url)
+    "https://hazellabel.com/product-images/race-team.webp"
   );
 }
