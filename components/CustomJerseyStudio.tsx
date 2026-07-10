@@ -78,8 +78,6 @@ function getSizeRecommendation(
 function getFitNotes(body: BodyMeasurements, fit: FitPreference) {
   const height = toNumber(body.height);
   const weight = toNumber(body.weight);
-  const height = toNumber(body.height);
-  const weight = toNumber(body.weight);
   const chest = toNumber(body.chest);
   const waist = toNumber(body.waist);
   const frontLength = toNumber(body.frontLength);
