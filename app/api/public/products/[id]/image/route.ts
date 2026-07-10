@@ -18,13 +18,9 @@ function getPrisma() {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  const adapter = new PrismaPg({
-    connectionString,
-  });
+  const adapter = new PrismaPg({ connectionString });
 
-  return new PrismaClient({
-    adapter,
-  });
+  return new PrismaClient({ adapter });
 }
 
 function placeholderSvg() {
@@ -58,12 +54,8 @@ export async function GET(request: Request, context: RouteContext) {
     const { id } = await context.params;
 
     const product = await prisma.product.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        imageUrl: true,
-      },
+      where: { id },
+      select: { imageUrl: true },
     });
 
     const imageUrl = product?.imageUrl;

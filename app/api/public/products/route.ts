@@ -12,13 +12,9 @@ function getPrisma() {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  const adapter = new PrismaPg({
-    connectionString,
-  });
+  const adapter = new PrismaPg({ connectionString });
 
-  return new PrismaClient({
-    adapter,
-  });
+  return new PrismaClient({ adapter });
 }
 
 export async function GET() {
@@ -30,12 +26,8 @@ export async function GET() {
         isActive: true,
       },
       orderBy: [
-        {
-          sortOrder: "asc",
-        },
-        {
-          createdAt: "desc",
-        },
+        { sortOrder: "asc" },
+        { createdAt: "desc" },
       ],
       select: {
         id: true,
