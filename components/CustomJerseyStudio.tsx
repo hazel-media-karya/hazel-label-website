@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import LowPolyBodyAvatar from "@/components/LowPolyBodyAvatar";
+import GLBBodyAvatar from "@/components/GLBBodyAvatar";
 
 type ViewMode = "front" | "back" | "left" | "right";
 type FitPreference = "slim" | "regular" | "relaxed";
@@ -324,7 +324,7 @@ Warna kedua: ${secondColor}`
               Body Anatomy Preview
             </p>
 
-            <LowPolyBodyAvatar
+            <GLBBodyAvatar
               body={body}
               fit={fit}
               recommendedSize={recommendedSize}
