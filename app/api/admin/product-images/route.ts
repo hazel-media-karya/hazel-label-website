@@ -6,74 +6,89 @@ export const dynamic = "force-dynamic";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-function configureCloudinary() {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+function getMissingCloudinaryVars() {
+  return [
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+  ].filter((key) => !process.env[key]);
+}
 
-  if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error("Cloudinary environment variables are not configured.");
+function configureCloudinary() {
+  const missing = getMissingCloudinaryVars();
+
+  if (missing.length > 0) {
+    throw new Error(`Missing Cloudinary variables: ${missing.join(", ")}`);
   }
 
   cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true,
   });
 }
 
-function uploadBufferToCloudinary(buffer: Buffer, filename: string) {
-  configureCloudinary();
-
-  const safeName = filename
+function slugifyFilename(filename: string) {
+  const base = filename
     .replace(/\.[^/.]+$/, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return new Promise<{ secureUrl: string }>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
+  return base || `product-${Date.now()}`;
+}
+
+async function uploadToCloudinary(file: File) {
+  configureCloudinary();
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const base64 = buffer.toString("base64");
+  const dataUri = `data:${file.type};base64,${base64}`;
+
+  const safeName = slugifyFilename(file.name);
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "hazel-label/products",
+    public_id: `${safeName}-${Date.now()}`,
+    resource_type: "image",
+    overwrite: false,
+    format: "webp",
+    transformation: [
       {
-        folder: "hazel-label/products",
-        public_id: safeName || `product-${Date.now()}`,
-        resource_type: "image",
-        overwrite: false,
-        allowed_formats: ["jpg", "jpeg", "png", "webp"],
-        transformation: [
-          {
-            width: 1600,
-            crop: "limit",
-            quality: "auto",
-            fetch_format: "webp",
-          },
-        ],
+        width: 1600,
+        crop: "limit",
+        quality: "auto:good",
       },
-      (error, result) => {
-        if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed."));
-          return;
-        }
+    ],
+  });
 
-        const transformedUrl = cloudinary.url(result.public_id, {
-          secure: true,
-          transformation: [
-            {
-              width: 1600,
-              crop: "limit",
-              quality: "auto",
-              fetch_format: "webp",
-            },
-          ],
-        });
+  const optimizedUrl = cloudinary.url(result.public_id, {
+    secure: true,
+    format: "webp",
+    transformation: [
+      {
+        width: 1600,
+        crop: "limit",
+        quality: "auto:good",
+      },
+    ],
+  });
 
-        resolve({
-          secureUrl: transformedUrl,
-        });
-      }
-    );
+  return optimizedUrl;
+}
 
-    stream.end(buffer);
+export async function GET() {
+  const missing = getMissingCloudinaryVars();
+
+  return NextResponse.json({
+    success: missing.length === 0,
+    message:
+      missing.length === 0
+        ? "Cloudinary variables are configured."
+        : `Missing Cloudinary variables: ${missing.join(", ")}`,
+    missing,
   });
 }
 
@@ -96,7 +111,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Only image files are allowed.",
+          message: `Invalid file type: ${file.type}. Only image files are allowed.`,
         },
         { status: 400 }
       );
@@ -112,23 +127,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const uploaded = await uploadBufferToCloudinary(buffer, file.name);
+    const imageUrl = await uploadToCloudinary(file);
 
     return NextResponse.json({
       success: true,
-      imageUrl: uploaded.secureUrl,
+      imageUrl,
       message: "Image uploaded.",
     });
   } catch (error) {
-    console.error("Product image upload error:", error);
-
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to upload image.";
+      error instanceof Error ? error.message : "Unknown upload error.";
+
+    console.error("Product image upload error:", message);
 
     return NextResponse.json(
       {
