@@ -1,5 +1,6 @@
 import CustomJerseyStudio from "@/components/CustomJerseyStudio";
 import HeaderRuntime from "@/components/HeaderRuntime";
+import FooterRuntime from "@/components/FooterRuntime";
 
 export const dynamic = "force-static";
 
@@ -27,6 +28,7 @@ export default function HazelStudioPage() {
         <CustomJerseyStudio />
       </main>
 
+      <FooterRuntime />
     </div>
   );
 }
