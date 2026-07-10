@@ -5,6 +5,12 @@ import { PrismaClient } from "@/lib/generated/prisma/client";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
 function getPrisma() {
   const connectionString = process.env.DATABASE_URL;
 
@@ -36,17 +42,24 @@ function placeholderSvg() {
   `;
 }
 
-export async function GET(
-  request: Request,
-  context: { params: { id: string } | Promise<{ id: string }> }
-) {
+function placeholderResponse() {
+  return new Response(placeholderSvg(), {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+export async function GET(request: Request, context: RouteContext) {
   const prisma = getPrisma();
 
   try {
-    const params = await Promise.resolve(context.params);
+    const { id } = await context.params;
+
     const product = await prisma.product.findUnique({
       where: {
-        id: params.id,
+        id,
       },
       select: {
         imageUrl: true,
@@ -56,12 +69,7 @@ export async function GET(
     const imageUrl = product?.imageUrl;
 
     if (!imageUrl) {
-      return new Response(placeholderSvg(), {
-        headers: {
-          "Content-Type": "image/svg+xml; charset=utf-8",
-          "Cache-Control": "public, max-age=3600",
-        },
-      });
+      return placeholderResponse();
     }
 
     if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
@@ -75,12 +83,7 @@ export async function GET(
     const match = imageUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
 
     if (!match) {
-      return new Response(placeholderSvg(), {
-        headers: {
-          "Content-Type": "image/svg+xml; charset=utf-8",
-          "Cache-Control": "public, max-age=3600",
-        },
-      });
+      return placeholderResponse();
     }
 
     const contentType = match[1];
@@ -95,13 +98,7 @@ export async function GET(
     });
   } catch (error) {
     console.error("Failed to load product image:", error);
-
-    return new Response(placeholderSvg(), {
-      headers: {
-        "Content-Type": "image/svg+xml; charset=utf-8",
-        "Cache-Control": "public, max-age=3600",
-      },
-    });
+    return placeholderResponse();
   } finally {
     await prisma.$disconnect();
   }
