@@ -14,6 +14,39 @@ function getMissingCloudinaryVars() {
   ].filter((key) => !process.env[key]);
 }
 
+function extractErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "string") return error;
+
+  if (error && typeof error === "object") {
+    const err = error as {
+      message?: unknown;
+      error?: {
+        message?: unknown;
+      };
+      http_code?: unknown;
+      name?: unknown;
+    };
+
+    if (typeof err.error?.message === "string") {
+      return err.error.message;
+    }
+
+    if (typeof err.message === "string") {
+      return err.message;
+    }
+
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return "Upload failed with non-readable error object.";
+    }
+  }
+
+  return "Unknown upload error.";
+}
+
 function configureCloudinary() {
   const missing = getMissingCloudinaryVars();
 
@@ -64,7 +97,7 @@ async function uploadToCloudinary(file: File) {
     ],
   });
 
-  const optimizedUrl = cloudinary.url(result.public_id, {
+  return cloudinary.url(result.public_id, {
     secure: true,
     format: "webp",
     transformation: [
@@ -75,8 +108,6 @@ async function uploadToCloudinary(file: File) {
       },
     ],
   });
-
-  return optimizedUrl;
 }
 
 export async function GET() {
@@ -135,8 +166,7 @@ export async function POST(request: Request) {
       message: "Image uploaded.",
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown upload error.";
+    const message = extractErrorMessage(error);
 
     console.error("Product image upload error:", message);
 
