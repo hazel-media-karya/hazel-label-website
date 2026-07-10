@@ -141,7 +141,7 @@ function applyMeasurementTransforms(
   model.scale.set(
     BASE_MODEL_SCALE * dimensions.bodyWidthScale,
     BASE_MODEL_SCALE * dimensions.heightScale,
-    BASE_MODEL_SCALE * dimensions.bodyWidthScale
+    BASE_MODEL_SCALE * Math.max(0.96, dimensions.bodyWidthScale * 0.96)
   );
 
   model.traverse((object) => {
@@ -189,37 +189,35 @@ function applyMeasurementTransforms(
     ]);
 
     const isTorso = includesAny(path, [
-      "torso",
-      "body",
       "spine",
       "trunk",
-      "chestbody",
-      "abdomenbody",
+      "uppertorso",
+      "lowertorso"
     ]);
 
     if (isChest) {
-      object.scale.x *= dimensions.chestScale;
-      object.scale.z *= dimensions.chestScale;
+      object.scale.x *= 1 + (dimensions.chestScale - 1) * 0.45;
+      object.scale.z *= 1 + (dimensions.chestScale - 1) * 0.45;
     }
 
     if (isWaist) {
-      object.scale.x *= dimensions.waistScale;
-      object.scale.z *= dimensions.waistScale;
+      object.scale.x *= 1 + (dimensions.waistScale - 1) * 0.45;
+      object.scale.z *= 1 + (dimensions.waistScale - 1) * 0.45;
     }
 
     if (isNeck) {
-      object.scale.x *= dimensions.neckScale;
-      object.scale.z *= dimensions.neckScale;
+      object.scale.x *= 1 + (dimensions.neckScale - 1) * 0.5;
+      object.scale.z *= 1 + (dimensions.neckScale - 1) * 0.5;
     }
 
     if (isArm) {
-      object.scale.x *= dimensions.armScale;
-      object.scale.z *= dimensions.armScale;
-      object.scale.y *= dimensions.sleeveScale;
+      object.scale.x *= 1 + (dimensions.armScale - 1) * 0.5;
+      object.scale.z *= 1 + (dimensions.armScale - 1) * 0.5;
+      object.scale.y *= 1 + (dimensions.sleeveScale - 1) * 0.45;
     }
 
     if (isTorso) {
-      object.scale.y *= dimensions.torsoScale;
+      object.scale.y *= 1 + (dimensions.torsoScale - 1) * 0.45;
     }
 
     if (object instanceof THREE.Mesh) {
@@ -273,21 +271,25 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     const sleeve = toNumber(body.sleeveLength);
     const backLength = toNumber(body.backLength);
 
-    const fitEase = fit === "slim" ? 1 : fit === "relaxed" ? 1.12 : 1.06;
+    const fitEase = fit === "slim" ? 0.98 : fit === "relaxed" ? 1.06 : 1.02;
+    const bmi =
+      height > 0 && weight > 0 ? weight / Math.pow(height / 100, 2) : 22;
 
-    const heightScale = clamp(height / 170, 0.86, 1.18);
-    const massScale = clamp(weight / 65, 0.82, 1.24);
-    const chestScale = clamp((chest / 92) * fitEase, 0.82, 1.38);
-    const waistScale = clamp((waist / 82) * fitEase, 0.78, 1.36);
-    const neckScale = clamp(neck / 38, 0.82, 1.26);
-    const armScale = clamp(arm / 30, 0.78, 1.38);
-    const sleeveScale = clamp(sleeve / 24, 0.75, 1.36);
-    const torsoScale = clamp(backLength / 64, 0.85, 1.26);
+    // Natural mannequin scaling:
+    // jangan terlalu ekstrem agar model tidak terlihat gepeng/stretching.
+    const heightScale = clamp(height / 170, 0.92, 1.1);
+    const massScale = clamp(1 + (bmi - 22) * 0.012, 0.92, 1.16);
+    const chestScale = clamp((chest / 92) * fitEase, 0.9, 1.14);
+    const waistScale = clamp((waist / 82) * fitEase, 0.9, 1.16);
+    const neckScale = clamp(neck / 38, 0.9, 1.12);
+    const armScale = clamp(arm / 30, 0.9, 1.15);
+    const sleeveScale = clamp(sleeve / 24, 0.9, 1.14);
+    const torsoScale = clamp(backLength / 64, 0.94, 1.1);
 
     const bodyWidthScale = clamp(
-      (massScale * 0.45 + chestScale * 0.35 + waistScale * 0.2),
-      0.82,
-      1.34
+      massScale * 0.55 + chestScale * 0.25 + waistScale * 0.2,
+      0.92,
+      1.16
     );
 
     return {
