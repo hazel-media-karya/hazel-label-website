@@ -61,6 +61,48 @@ function slugify(value: string) {
   return slug || `product-${Date.now()}`;
 }
 
+function sanitizeImageUrl(value: unknown) {
+  const imageUrl = text(value);
+
+  if (!imageUrl) {
+    return {
+      ok: true as const,
+      value: null,
+    };
+  }
+
+  if (imageUrl.startsWith("data:")) {
+    return {
+      ok: false as const,
+      message:
+        "Base64 image is not allowed. Use a file path such as /product-images/race-team.webp.",
+    };
+  }
+
+  if (
+    imageUrl.startsWith("/product-images/") ||
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  ) {
+    return {
+      ok: true as const,
+      value: imageUrl,
+    };
+  }
+
+  return {
+    ok: false as const,
+    message:
+      "Invalid image URL. Use /product-images/file.webp or a valid http/https URL.",
+  };
+}
+
+function safeProductImageUrl(imageUrl: string | null) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("data:")) return null;
+  return imageUrl;
+}
+
 async function makeUniqueSlug(
   prisma: PrismaClient,
   baseSlug: string,
@@ -88,17 +130,32 @@ export async function GET() {
 
   try {
     const products = await prisma.product.findMany({
-      orderBy: [
-        { sortOrder: "asc" },
-        { createdAt: "desc" },
-      ],
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        category: true,
+        description: true,
+        priceFrom: true,
+        imageUrl: true,
+        isActive: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json({
       success: true,
-      data: products,
+      data: products.map((product) => ({
+        ...product,
+        imageUrl: safeProductImageUrl(product.imageUrl),
+      })),
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to load products:", error);
+
     return NextResponse.json(
       {
         success: false,
@@ -121,7 +178,7 @@ export async function POST(request: Request) {
     const category = text(body.category, "Custom Jersey");
     const description = text(body.description);
     const priceFrom = Math.max(0, Math.round(numberValue(body.priceFrom, 0)));
-    const imageUrl = text(body.imageUrl);
+    const sanitizedImage = sanitizeImageUrl(body.imageUrl);
     const isActive = booleanValue(body.isActive, true);
     const sortOrder = Math.round(numberValue(body.sortOrder, 0));
 
@@ -130,6 +187,16 @@ export async function POST(request: Request) {
         {
           success: false,
           message: "Product name is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!sanitizedImage.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: sanitizedImage.message,
         },
         { status: 400 }
       );
@@ -145,7 +212,7 @@ export async function POST(request: Request) {
         category,
         description,
         priceFrom,
-        imageUrl: imageUrl || null,
+        imageUrl: sanitizedImage.value,
         isActive,
         sortOrder,
       },
@@ -156,7 +223,9 @@ export async function POST(request: Request) {
       data: product,
       message: "Product created.",
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to create product:", error);
+
     return NextResponse.json(
       {
         success: false,
@@ -169,9 +238,6 @@ export async function POST(request: Request) {
   }
 }
 
-
-
-
 export async function PUT(request: Request) {
   const prisma = getPrisma();
 
@@ -183,7 +249,7 @@ export async function PUT(request: Request) {
     const category = text(body.category, "Custom Jersey");
     const description = text(body.description);
     const priceFrom = Math.max(0, Math.round(numberValue(body.priceFrom, 0)));
-    const imageUrl = text(body.imageUrl);
+    const sanitizedImage = sanitizeImageUrl(body.imageUrl);
     const isActive = booleanValue(body.isActive, true);
     const sortOrder = Math.round(numberValue(body.sortOrder, 0));
 
@@ -192,6 +258,16 @@ export async function PUT(request: Request) {
         {
           success: false,
           message: "Product id and name are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!sanitizedImage.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: sanitizedImage.message,
         },
         { status: 400 }
       );
@@ -208,7 +284,7 @@ export async function PUT(request: Request) {
         category,
         description,
         priceFrom,
-        imageUrl: imageUrl || null,
+        imageUrl: sanitizedImage.value,
         isActive,
         sortOrder,
       },
@@ -219,7 +295,9 @@ export async function PUT(request: Request) {
       data: product,
       message: "Product updated.",
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to update product:", error);
+
     return NextResponse.json(
       {
         success: false,
@@ -257,7 +335,9 @@ export async function DELETE(request: Request) {
       success: true,
       message: "Product deleted.",
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to delete product:", error);
+
     return NextResponse.json(
       {
         success: false,
