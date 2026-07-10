@@ -141,7 +141,7 @@ function applyMeasurementTransforms(
   model.scale.set(
     BASE_MODEL_SCALE * dimensions.bodyWidthScale,
     BASE_MODEL_SCALE * dimensions.heightScale,
-    BASE_MODEL_SCALE * Math.max(0.96, dimensions.bodyWidthScale * 0.96)
+    BASE_MODEL_SCALE * dimensions.bodyWidthScale
   );
 
   model.traverse((object) => {
@@ -158,11 +158,10 @@ function applyMeasurementTransforms(
     const isChest = includesAny(path, [
       "chest",
       "dada",
-      "upperbody",
-      "upper",
-      "rib",
+      "chest",
+      "dada",
       "pectoral",
-      "spineupper",
+      "rib",
     ]);
 
     const isWaist = includesAny(path, [
@@ -171,9 +170,6 @@ function applyMeasurementTransforms(
       "belly",
       "abdomen",
       "stomach",
-      "hip",
-      "pelvis",
-      "lowerbody",
     ]);
 
     const isNeck = includesAny(path, ["neck", "leher"]);
@@ -189,8 +185,7 @@ function applyMeasurementTransforms(
     ]);
 
     const isTorso = includesAny(path, [
-      "spine",
-      "trunk",
+      "torso",
       "uppertorso",
       "lowertorso"
     ]);
@@ -287,7 +282,7 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     const torsoScale = clamp(backLength / 64, 0.94, 1.1);
 
     const bodyWidthScale = clamp(
-      massScale * 0.55 + chestScale * 0.25 + waistScale * 0.2,
+      massScale,
       0.92,
       1.16
     );
