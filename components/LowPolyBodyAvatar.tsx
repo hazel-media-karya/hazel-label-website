@@ -393,8 +393,14 @@ export default function LowPolyBodyAvatar({
       view === "front" ? 0 : view === "side" ? -Math.PI / 2 : Math.PI;
 
     function resize() {
-      const width = mount.clientWidth || 600;
-      const height = mount.clientHeight || 520;
+      const currentMount = mountRef.current;
+
+      if (!currentMount) {
+        return;
+      }
+
+      const width = currentMount.clientWidth || 600;
+      const height = currentMount.clientHeight || 520;
 
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
