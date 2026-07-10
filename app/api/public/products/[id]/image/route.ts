@@ -1,27 +1,5 @@
-import { NextResponse } from "next/server";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/lib/generated/prisma/client";
-
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-type RouteContext = {
-  params: Promise<{
-    id: string;
-  }>;
-};
-
-function getPrisma() {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not configured.");
-  }
-
-  const adapter = new PrismaPg({ connectionString });
-
-  return new PrismaClient({ adapter });
-}
 
 function placeholderSvg() {
   return `
@@ -38,60 +16,11 @@ function placeholderSvg() {
   `;
 }
 
-function placeholderResponse() {
+export async function GET() {
   return new Response(placeholderSvg(), {
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
       "Cache-Control": "public, max-age=3600",
     },
   });
-}
-
-export async function GET(request: Request, context: RouteContext) {
-  const prisma = getPrisma();
-
-  try {
-    const { id } = await context.params;
-
-    const product = await prisma.product.findUnique({
-      where: { id },
-      select: { imageUrl: true },
-    });
-
-    const imageUrl = product?.imageUrl;
-
-    if (!imageUrl) {
-      return placeholderResponse();
-    }
-
-    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-      return NextResponse.redirect(imageUrl);
-    }
-
-    if (imageUrl.startsWith("/")) {
-      return NextResponse.redirect(new URL(imageUrl, request.url));
-    }
-
-    const match = imageUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-
-    if (!match) {
-      return placeholderResponse();
-    }
-
-    const contentType = match[1];
-    const base64 = match[2];
-    const buffer = Buffer.from(base64, "base64");
-
-    return new Response(new Uint8Array(buffer), {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400",
-      },
-    });
-  } catch (error) {
-    console.error("Failed to load product image:", error);
-    return placeholderResponse();
-  } finally {
-    await prisma.$disconnect();
-  }
 }
