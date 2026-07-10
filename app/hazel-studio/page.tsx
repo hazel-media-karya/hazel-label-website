@@ -8,7 +8,7 @@ export default function HazelStudioPage() {
     <div className="min-h-screen bg-black text-white">
       <HeaderRuntime />
 
-      <main className="lg:h-[calc(100vh-86px)] lg:overflow-hidden">
+      <main className="lg:h-[calc(100vh-132px)] lg:overflow-hidden">
         <section className="mx-auto max-w-[1500px] px-6 pt-5">
           <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
             Hazel Studio
