@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import LowPolyBodyAvatar from "@/components/LowPolyBodyAvatar";
 
 type ViewMode = "front" | "back" | "left" | "right";
 type FitPreference = "slim" | "regular" | "relaxed";
@@ -129,25 +130,7 @@ export default function CustomJerseyStudio() {
     [body, fit]
   );
 
-  const bodyVisual = useMemo(() => {
-    const shoulderWidth = Math.min(170, Math.max(110, chest * 1.45));
-    const waistWidth = Math.min(155, Math.max(85, waist * 1.35));
-    const torsoHeight = Math.min(310, Math.max(220, backLength * 4));
-    const sleeveHeight = Math.min(130, Math.max(70, sleeveLength * 4));
-    const armWidth = Math.min(62, Math.max(36, armCircumference * 1.65));
-    const neckWidth = Math.min(78, Math.max(42, neck * 1.65));
-    const pocketHeight = Math.min(95, Math.max(45, pocketLength * 4));
 
-    return {
-      shoulderWidth,
-      waistWidth,
-      torsoHeight,
-      sleeveHeight,
-      armWidth,
-      neckWidth,
-      pocketHeight,
-    };
-  }, [chest, waist, backLength, sleeveLength, armCircumference, neck, pocketLength]);
 
   const whatsappText = useMemo(() => {
     return encodeURIComponent(
@@ -341,63 +324,11 @@ Warna kedua: ${secondColor}`
               Body Anatomy Preview
             </p>
 
-            <div className="mt-8 flex min-h-[520px] items-center justify-center rounded-[28px] border border-white/10 bg-black/60 p-8">
-              <div className="relative flex flex-col items-center">
-                <div
-                  className="rounded-full border border-[#d8b36d]/40 bg-[#d8b36d]/30"
-                  style={{
-                    width: bodyVisual.neckWidth + 44,
-                    height: bodyVisual.neckWidth + 44,
-                  }}
-                />
-
-                <div
-                  className="relative mt-[-6px] rounded-t-[70px] border border-white/15 bg-gradient-to-b from-zinc-800 to-zinc-950 shadow-2xl"
-                  style={{
-                    width: bodyVisual.shoulderWidth,
-                    height: bodyVisual.torsoHeight,
-                    clipPath: `polygon(8% 0, 92% 0, 80% 100%, 20% 100%)`,
-                  }}
-                >
-                  <div
-                    className="absolute left-1/2 top-0 h-16 -translate-x-1/2 rounded-b-full bg-black"
-                    style={{ width: bodyVisual.neckWidth }}
-                  />
-
-                  <div
-                    className="absolute bottom-12 left-1/2 h-16 -translate-x-1/2 rounded-xl border border-[#d8b36d]/40 bg-[#d8b36d]/10"
-                    style={{
-                      width: Math.max(90, bodyVisual.waistWidth * 0.8),
-                      height: bodyVisual.pocketHeight,
-                    }}
-                  >
-                    <p className="mt-5 text-center text-[10px] uppercase tracking-[0.25em] text-[#d8b36d]">
-                      Pocket
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className="absolute top-[84px] rounded-full border border-white/10 bg-zinc-900"
-                  style={{
-                    left: `calc(50% - ${bodyVisual.shoulderWidth / 2 + bodyVisual.armWidth - 4}px)`,
-                    width: bodyVisual.armWidth,
-                    height: bodyVisual.sleeveHeight,
-                    transform: "rotate(12deg)",
-                  }}
-                />
-
-                <div
-                  className="absolute top-[84px] rounded-full border border-white/10 bg-zinc-900"
-                  style={{
-                    right: `calc(50% - ${bodyVisual.shoulderWidth / 2 + bodyVisual.armWidth - 4}px)`,
-                    width: bodyVisual.armWidth,
-                    height: bodyVisual.sleeveHeight,
-                    transform: "rotate(-12deg)",
-                  }}
-                />
-              </div>
-            </div>
+            <LowPolyBodyAvatar
+              body={body}
+              fit={fit}
+              recommendedSize={recommendedSize}
+            />
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/40 p-5">
               <p className="text-sm text-zinc-400">Recommended Size</p>
