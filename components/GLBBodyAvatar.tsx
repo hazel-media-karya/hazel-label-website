@@ -94,42 +94,37 @@ function captureOriginalTransforms(
   });
 }
 
+function getMorphAmount(value: number, baseline: number, maxValue: number) {
+  // 0 = ukuran normal, 1 = ukuran maksimal pada shape key.
+  if (!Number.isFinite(value) || value <= baseline) return 0;
+  return clamp((value - baseline) / (maxValue - baseline), 0, 1);
+}
+
 function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
+
+  const chestAmount = getMorphAmount(dimensions.chest, 92, 130);
+  const waistAmount = getMorphAmount(dimensions.waist, 82, 130);
+  const armAmount = getMorphAmount(dimensions.arm, 30, 48);
+  const neckAmount = getMorphAmount(dimensions.neck, 38, 52);
 
   Object.entries(mesh.morphTargetDictionary).forEach(([name, index]) => {
     const morphName = normalizeName(name);
 
     if (includesAny(morphName, ["chest", "dada", "upperbody", "rib"])) {
-      mesh.morphTargetInfluences![index] = clamp(
-        (dimensions.chestScale - 1) * 1.8,
-        -0.55,
-        0.85
-      );
+      mesh.morphTargetInfluences![index] = chestAmount;
     }
 
-    if (includesAny(morphName, ["waist", "perut", "belly", "abdomen"])) {
-      mesh.morphTargetInfluences![index] = clamp(
-        (dimensions.waistScale - 1) * 1.8,
-        -0.55,
-        0.85
-      );
+    if (includesAny(morphName, ["waist", "perut", "belly", "abdomen", "stomach"])) {
+      mesh.morphTargetInfluences![index] = waistAmount;
     }
 
     if (includesAny(morphName, ["arm", "lengan", "bicep", "sleeve"])) {
-      mesh.morphTargetInfluences![index] = clamp(
-        (dimensions.armScale - 1) * 1.8,
-        -0.55,
-        0.85
-      );
+      mesh.morphTargetInfluences![index] = armAmount;
     }
 
     if (includesAny(morphName, ["neck", "leher"])) {
-      mesh.morphTargetInfluences![index] = clamp(
-        (dimensions.neckScale - 1) * 1.6,
-        -0.45,
-        0.65
-      );
+      mesh.morphTargetInfluences![index] = neckAmount;
     }
   });
 }
