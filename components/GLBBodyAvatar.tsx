@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
 type FitPreference = "slim" | "regular" | "relaxed";
 
@@ -369,6 +370,7 @@ export default function GLBBodyAvatar({ body, fit, recommendedSize }: Props) {
     scene.add(avatarRoot);
 
     const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
     let frame = 0;
 
     loader.load(
