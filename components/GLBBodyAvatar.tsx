@@ -95,18 +95,28 @@ function captureOriginalTransforms(
 }
 
 function getMorphAmount(value: number, baseline: number, maxValue: number) {
-  // 0 = ukuran normal, 1 = ukuran maksimal pada shape key.
-  if (!Number.isFinite(value) || value <= baseline) return 0;
+  if (!Number.isFinite(value)) return 0;
   return clamp((value - baseline) / (maxValue - baseline), 0, 1);
+}
+
+function getBodyMassAmount(heightCm: number, weightKg: number) {
+  const heightM = heightCm / 100;
+  if (!heightM || !weightKg) return 0;
+
+  const bmi = weightKg / (heightM * heightM);
+
+  // BMI 22 = normal, BMI 34 = besar. Dibuat responsif untuk preview fitting.
+  return clamp((bmi - 22) / (34 - 22), 0, 1);
 }
 
 function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
 
-  const chestAmount = getMorphAmount(dimensions.chest, 92, 130);
-  const waistAmount = getMorphAmount(dimensions.waist, 82, 130);
-  const armAmount = getMorphAmount(dimensions.arm, 30, 48);
-  const neckAmount = getMorphAmount(dimensions.neck, 38, 52);
+  const chestAmount = getMorphAmount(dimensions.chest, 88, 115) * 0.75;
+  const bellyAmount = getMorphAmount(dimensions.waist, 78, 115) * 0.85;
+  const armAmount = getMorphAmount(dimensions.arm, 28, 45) * 0.65;
+  const neckAmount = getMorphAmount(dimensions.neck, 36, 50) * 0.55;
+  const bodyMassAmount = getBodyMassAmount(dimensions.height, dimensions.weight) * 0.85;
 
   Object.entries(mesh.morphTargetDictionary).forEach(([name, index]) => {
     const morphName = normalizeName(name);
@@ -116,105 +126,38 @@ function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
     }
 
     if (includesAny(morphName, ["waist", "perut", "belly", "abdomen", "stomach"])) {
-      mesh.morphTargetInfluences![index] = waistAmount;
+      mesh.morphTargetInfluences![index] = bellyAmount;
     }
 
-    if (includesAny(morphName, ["arm", "lengan", "bicep", "sleeve"])) {
+    if (includesAny(morphName, ["arm", "lengan", "bicep", "upperarm"])) {
       mesh.morphTargetInfluences![index] = armAmount;
     }
 
     if (includesAny(morphName, ["neck", "leher"])) {
       mesh.morphTargetInfluences![index] = neckAmount;
     }
+
+    if (includesAny(morphName, ["bodymass", "body_mass", "mass", "weight", "berat"])) {
+      mesh.morphTargetInfluences![index] = bodyMassAmount;
+    }
   });
 }
 
-function applyMeasurementTransforms(
-  model: THREE.Object3D,
-  originals: Map<string, OriginalTransform>,
-  dimensions: AvatarDimensions
-) {
-  model.scale.set(
-    BASE_MODEL_SCALE * dimensions.bodyWidthScale,
-    BASE_MODEL_SCALE * dimensions.heightScale,
-    BASE_MODEL_SCALE * dimensions.bodyWidthScale
+function applyMeasurementTransforms(object: THREE.Object3D, dimensions: AvatarDimensions) {
+  if (!object.userData.baseScale) {
+    object.userData.baseScale = object.scale.clone();
+  }
+
+  const baseScale = object.userData.baseScale as THREE.Vector3;
+
+  // Tinggi badan hanya mengubah tinggi avatar, bukan lebar badan.
+  const heightScale = clamp(dimensions.height / 170, 0.82, 1.18);
+
+  object.scale.set(
+    baseScale.x,
+    baseScale.y * heightScale,
+    baseScale.z
   );
-
-  model.traverse((object) => {
-    if (object === model) return;
-
-    const original = originals.get(object.uuid);
-    if (original) {
-      object.scale.copy(original.scale);
-      object.position.copy(original.position);
-    }
-
-    const path = getObjectPath(object);
-
-    const isChest = includesAny(path, [
-      "chest",
-      "dada",
-      "chest",
-      "dada",
-      "pectoral",
-      "rib",
-    ]);
-
-    const isWaist = includesAny(path, [
-      "waist",
-      "perut",
-      "belly",
-      "abdomen",
-      "stomach",
-    ]);
-
-    const isNeck = includesAny(path, ["neck", "leher"]);
-
-    const isArm = includesAny(path, [
-      "arm",
-      "lengan",
-      "bicep",
-      "forearm",
-      "sleeve",
-      "leftarm",
-      "rightarm",
-    ]);
-
-    const isTorso = includesAny(path, [
-      "torso",
-      "uppertorso",
-      "lowertorso"
-    ]);
-
-    if (isChest) {
-      object.scale.x *= 1 + (dimensions.chestScale - 1) * 0.45;
-      object.scale.z *= 1 + (dimensions.chestScale - 1) * 0.45;
-    }
-
-    if (isWaist) {
-      object.scale.x *= 1 + (dimensions.waistScale - 1) * 0.45;
-      object.scale.z *= 1 + (dimensions.waistScale - 1) * 0.45;
-    }
-
-    if (isNeck) {
-      object.scale.x *= 1 + (dimensions.neckScale - 1) * 0.5;
-      object.scale.z *= 1 + (dimensions.neckScale - 1) * 0.5;
-    }
-
-    if (isArm) {
-      object.scale.x *= 1 + (dimensions.armScale - 1) * 0.5;
-      object.scale.z *= 1 + (dimensions.armScale - 1) * 0.5;
-      object.scale.y *= 1 + (dimensions.sleeveScale - 1) * 0.45;
-    }
-
-    if (isTorso) {
-      object.scale.y *= 1 + (dimensions.torsoScale - 1) * 0.45;
-    }
-
-    if (object instanceof THREE.Mesh) {
-      applyMorphTargets(object, dimensions);
-    }
-  });
 }
 
 function fitCameraToModel(
