@@ -143,7 +143,13 @@ function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   });
 }
 
-function applyMeasurementTransforms(object: THREE.Object3D, dimensions: AvatarDimensions) {
+function applyMeasurementTransforms(
+  object: THREE.Object3D,
+  originalsOrDimensions: unknown,
+  maybeDimensions?: AvatarDimensions
+) {
+  const dimensions = (maybeDimensions ?? originalsOrDimensions) as AvatarDimensions;
+
   if (!object.userData.baseScale) {
     object.userData.baseScale = object.scale.clone();
   }
