@@ -764,20 +764,42 @@ function MeasurementInput({
   label,
   value,
   unit = "cm",
+  min,
+  max,
   onChange,
 }: {
   label: string;
   unit?: string;
   value: string;
+  min?: number;
+  max?: number;
   onChange: (value: string) => void;
 }) {
+  function handleChange(rawValue: string) {
+    if (rawValue === "") {
+      onChange("");
+      return;
+    }
+
+    const number = Number(rawValue);
+    if (!Number.isFinite(number)) return;
+
+    const minValue = min ?? number;
+    const maxValue = max ?? number;
+    const clamped = Math.max(minValue, Math.min(maxValue, number));
+
+    onChange(String(clamped));
+  }
+
   return (
     <label className="text-xs font-medium text-zinc-300">
       {label} <span className="text-zinc-500">({unit})</span>
       <input
         type="number"
+        min={min}
+        max={max}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => handleChange(event.target.value)}
         className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
       />
     </label>

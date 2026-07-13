@@ -111,10 +111,15 @@ function getBodyMassAmount(heightCm: number, weightKg: number) {
 function getBellyDominance(chest: number, waist: number) {
   if (!Number.isFinite(chest) || !Number.isFinite(waist)) return 0;
 
-  // Kunci fitting:
-  // jika lingkar perut lebih besar dari lingkar dada, avatar harus tampak buncit.
-  return clamp((waist - chest) / 35, 0, 1);
+  // Jika perut lebih besar dari dada:
+  // selisih 10 cm = mulai buncit
+  // selisih 25 cm ke atas = buncit kuat
+  return clamp((waist - chest) / 25, 0, 1);
 }
+
+
+
+
 
 
 
@@ -133,22 +138,24 @@ function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   const armFromMeasure = getMorphAmount(dimensions.arm, 26, 42);
   const neckFromMeasure = getMorphAmount(dimensions.neck, 34, 46);
 
-  const chestAmount = clamp(Math.max(chestFromMeasure * 0.85, bodyMass * 0.30), 0, 1);
+  const chestAmount = clamp(Math.max(chestFromMeasure * 0.85, bodyMass * 0.25), 0, 1);
 
-  // Perut dibuat dominan jika waist > chest.
+  // Kunci revisi:
+  // kalau waist > chest, belly dipaksa dominan.
+  // Angka bisa sampai 1.25 agar shape key belly terasa lebih keluar.
   const bellyAmount = clamp(
     Math.max(
-      bellyFromMeasure * 0.55,
-      bellyDominance * 1.0,
-      bodyMass * 0.45
+      bellyFromMeasure * 0.45,
+      bellyDominance * 1.25,
+      bodyMass * 0.35
     ),
     0,
-    1
+    1.25
   );
 
-  const armAmount = clamp(Math.max(armFromMeasure * 0.80, bodyMass * 0.30), 0, 1);
-  const neckAmount = clamp(Math.max(neckFromMeasure * 0.65, bodyMass * 0.18), 0, 1);
-  const bodyMassAmount = clamp(bodyMass * 0.85, 0, 1);
+  const armAmount = clamp(Math.max(armFromMeasure * 0.80, bodyMass * 0.25), 0, 1);
+  const neckAmount = clamp(Math.max(neckFromMeasure * 0.65, bodyMass * 0.15), 0, 1);
+  const bodyMassAmount = clamp(bodyMass * 0.80, 0, 1);
 
   Object.entries(mesh.morphTargetDictionary).forEach(([name, index]) => {
     const morphName = normalizeName(name);
