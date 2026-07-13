@@ -1,542 +1,669 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import GLBBodyAvatar from "./GLBBodyAvatar";
+import { useEffect, useMemo, useRef, useState } from "react";
+import GLBBodyAvatar from "@/components/GLBBodyAvatar";
 
-type Gender = "male" | "female";
-type JerseyType = "short-sleeve" | "long-sleeve";
+type ViewMode = "front" | "back" | "left" | "right";
+type FitPreference = "slim" | "regular" | "relaxed";
 
-type Measurements = {
-  height: number;
-  weight: number;
-  neck: number;
-  chest: number;
-  waist: number;
-  arm: number;
-  sleeveLength: number;
-
-  // Field pola jersey disimpan untuk tahap berikutnya, tapi tidak ditampilkan di anatomy input.
-  frontLength: number;
-  backLength: number;
-  pocketLength: number;
+type BodyMeasurements = {
+  height: string;
+  weight: string;
+  chest: string;
+  waist: string;
+  frontLength: string;
+  armCircumference: string;
+  sleeveLength: string;
+  neck: string;
+  backLength: string;
+  pocketLength: string;
 };
 
-const AvatarPreview = GLBBodyAvatar as React.ComponentType<any>;
-
-const steps = [
-  "Gender",
-  "Tinggi & Berat",
-  "Ukuran Tubuh",
-  "Preview Fitting",
-  "Model Jersey",
-  "Generate Jersey",
-  "Upload Desain",
-  "Checkout",
-];
-
-const defaultMeasurements: Measurements = {
-  height: 170,
-  weight: 70,
-  neck: 38,
-  chest: 100,
-  waist: 90,
-  arm: 36,
-  sleeveLength: 24,
-  frontLength: 58,
-  backLength: 66,
-  pocketLength: 18,
+const defaultBody: BodyMeasurements = {
+  height: "170",
+  weight: "65",
+  chest: "92",
+  waist: "82",
+  frontLength: "58",
+  armCircumference: "30",
+  sleeveLength: "24",
+  neck: "38",
+  backLength: "64",
+  pocketLength: "18",
 };
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
+const viewRotation: Record<ViewMode, string> = {
+  front: "rotateY(0deg)",
+  back: "rotateY(180deg)",
+  left: "rotateY(55deg)",
+  right: "rotateY(-55deg)",
+};
+
+function toNumber(value: string) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
 }
 
-function getBmi(height: number, weight: number) {
-  const meter = height / 100;
-  if (!meter || !weight) return 0;
-  return weight / (meter * meter);
-}
+function getSizeRecommendation(
+  chest: number,
+  waist: number,
+  height: number,
+  weight: number
+) {
+  const base = Math.max(chest, waist + 8);
+  const bmi =
+    height > 0 && weight > 0 ? weight / Math.pow(height / 100, 2) : 0;
 
-function getRecommendedSize(m: Measurements) {
-  const bmi = getBmi(m.height, m.weight);
-  const bellyDominant = m.waist > m.chest;
-  const extremeBelly = m.waist - m.chest >= 15;
+  const sizes = ["S", "M", "L", "XL", "CUSTOM"] as const;
 
-  if (bmi >= 30 || extremeBelly || m.chest > 116 || m.waist > 116 || m.arm > 44) {
-    return "CUSTOM";
+  let index = 0;
+
+  if (base <= 86) index = 0;
+  else if (base <= 94) index = 1;
+  else if (base <= 102) index = 2;
+  else if (base <= 110) index = 3;
+  else index = 4;
+
+  if ((height >= 185 || bmi >= 28) && index < sizes.length - 1) {
+    index += 1;
   }
 
-  const base = Math.max(m.chest, m.waist);
+  if (height > 0 && height <= 155 && bmi > 0 && bmi < 20 && index > 0) {
+    index -= 1;
+  }
 
-  if (base <= 86) return "XS";
-  if (base <= 92) return "S";
-  if (base <= 98) return "M";
-  if (base <= 104) return bellyDominant ? "L" : "L";
-  if (base <= 110) return "XL";
-  if (base <= 116) return "XXL";
-
-  return "CUSTOM";
+  return sizes[index];
 }
 
-function getFittingNotes(m: Measurements) {
+function getFitNotes(body: BodyMeasurements, fit: FitPreference) {
+  const height = toNumber(body.height);
+  const weight = toNumber(body.weight);
+  const chest = toNumber(body.chest);
+  const waist = toNumber(body.waist);
+  const frontLength = toNumber(body.frontLength);
+  const backLength = toNumber(body.backLength);
+  const arm = toNumber(body.armCircumference);
+  const neck = toNumber(body.neck);
+  const pocket = toNumber(body.pocketLength);
+
   const notes: string[] = [];
-  const bmi = getBmi(m.height, m.weight);
 
-  if (m.waist > m.chest) {
-    notes.push("Lingkar perut lebih besar dari lingkar dada; preview akan menonjolkan area belly/perut.");
+  if (height > 0 && weight > 0) {
+    const bmi = weight / Math.pow(height / 100, 2);
+
+    if (height >= 180) {
+      notes.push("Tinggi badan cukup tinggi; panjang jersey perlu diperhatikan agar tidak terlalu pendek.");
+    }
+
+    if (bmi >= 27) {
+      notes.push("Rasio berat dan tinggi menunjukkan body volume lebih besar; rekomendasi size perlu diberi ease tambahan.");
+    }
+
+    if (bmi < 19) {
+      notes.push("Rasio berat dan tinggi cenderung slim; pola dapat dibuat lebih ramping.");
+    }
   }
 
-  if (bmi >= 28) {
-    notes.push("Rasio tinggi dan berat menunjukkan body volume lebih besar; pola perlu diberi ease tambahan.");
+  if (chest - waist >= 12) {
+    notes.push("Bentuk badan cenderung athletic; bagian dada perlu ruang lebih.");
   }
 
-  if (m.arm >= 40) {
+  if (waist > chest - 4) {
+    notes.push("Area perut perlu pola regular agar jersey tidak terlalu ketat.");
+  }
+
+  if (backLength - frontLength >= 5) {
+    notes.push("Panjang belakang lebih dominan; cocok untuk cycling cut.");
+  }
+
+  if (arm >= 34) {
     notes.push("Lingkar lengan besar; sleeve opening perlu dibuat lebih longgar.");
   }
 
-  if (m.neck >= 43) {
-    notes.push("Lingkar leher besar; area collar perlu diberi ruang lebih nyaman.");
+  if (neck >= 42) {
+    notes.push("Lingkar leher besar; kerah sebaiknya tidak terlalu rapat.");
   }
 
-  if (notes.length === 0) {
-    notes.push("Ukuran tubuh masih dalam range regular fit.");
+  if (pocket < 16) {
+    notes.push("Panjang saku pendek; kapasitas pocket belakang terbatas.");
+  }
+
+  if (fit === "slim") {
+    notes.push("Fit preference: slim fit, pola akan dibuat lebih menempel.");
+  } else if (fit === "relaxed") {
+    notes.push("Fit preference: relaxed fit, pola akan diberi ease lebih longgar.");
+  } else {
+    notes.push("Fit preference: regular fit, cocok untuk pemakaian komunitas dan event.");
   }
 
   return notes;
 }
 
-function Field({
-  label,
-  value,
-  min,
-  max,
-  suffix = "cm",
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm text-zinc-300">
-        {label} <span className="text-zinc-500">({suffix})</span>
-      </span>
-      <input
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(event) => onChange(clamp(Number(event.target.value), min, max))}
-        className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition focus:border-[#e6bd67]"
-      />
-    </label>
-  );
-}
-
 export default function CustomJerseyStudio() {
-  const [step, setStep] = useState(0);
-  const [gender, setGender] = useState<Gender>("male");
-  const [jerseyType, setJerseyType] = useState<JerseyType>("short-sleeve");
-  const [generated, setGenerated] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [measurements, setMeasurements] = useState<Measurements>(defaultMeasurements);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const recommendedSize = useMemo(() => getRecommendedSize(measurements), [measurements]);
-  const fittingNotes = useMemo(() => getFittingNotes(measurements), [measurements]);
+  const [step, setStep] = useState<"body" | "jersey">("body");
+  const [body, setBody] = useState<BodyMeasurements>(defaultBody);
+  const [fit, setFit] = useState<FitPreference>("regular");
 
-  const avatarDimensions = {
-    ...measurements,
-    gender,
-    armCircumference: measurements.arm,
-    waist: measurements.waist,
-  };
+  const [view, setView] = useState<ViewMode>("front");
+  const [mainColor, setMainColor] = useState("#111111");
+  const [accentColor, setAccentColor] = useState("#d8b36d");
+  const [secondColor, setSecondColor] = useState("#8b0f1f");
+  const [playerName, setPlayerName] = useState("HAZEL");
+  const [playerNumber, setPlayerNumber] = useState("07");
+  const [artworkUrl, setArtworkUrl] = useState("");
 
-  function updateMeasurement<K extends keyof Measurements>(key: K, value: Measurements[K]) {
-    setMeasurements((current) => ({
+  const height = toNumber(body.height);
+  const weight = toNumber(body.weight);
+  const chest = toNumber(body.chest);
+  const waist = toNumber(body.waist);
+  const frontLength = toNumber(body.frontLength);
+  const backLength = toNumber(body.backLength);
+  const sleeveLength = toNumber(body.sleeveLength);
+  const armCircumference = toNumber(body.armCircumference);
+  const neck = toNumber(body.neck);
+  const pocketLength = toNumber(body.pocketLength);
+
+  const recommendedSize = useMemo(
+    () => getSizeRecommendation(chest, waist, height, weight),
+    [chest, waist, height, weight]
+  );
+
+  const fitNotes = useMemo(
+    () => getFitNotes(body, fit),
+    [body, fit]
+  );
+
+
+
+  const whatsappText = useMemo(() => {
+    return encodeURIComponent(
+      `Halo Hazel Apparel, saya ingin custom jersey.
+
+BODY MEASUREMENT:
+Tinggi badan: ${body.height} cm
+Berat badan: ${body.weight} kg
+Lingkar dada: ${body.chest} cm
+Lingkar perut: ${body.waist} cm
+Panjang depan kerah-bawah: ${body.frontLength} cm
+Lingkar lengan: ${body.armCircumference} cm
+Panjang lengan: ${body.sleeveLength} cm
+Lingkar leher: ${body.neck} cm
+Panjang belakang: ${body.backLength} cm
+Panjang saku: ${body.pocketLength} cm
+Fit: ${fit}
+Rekomendasi size: ${recommendedSize}
+
+JERSEY:
+Nama: ${playerName}
+Nomor: ${playerNumber}
+Warna utama: ${mainColor}
+Warna aksen: ${accentColor}
+Warna kedua: ${secondColor}`
+    );
+  }, [
+    body,
+    fit,
+    recommendedSize,
+    playerName,
+    playerNumber,
+    mainColor,
+    accentColor,
+    secondColor,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (artworkUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(artworkUrl);
+      }
+    };
+  }, [artworkUrl]);
+
+  function updateBody(key: keyof BodyMeasurements, value: string) {
+    setBody((current) => ({
       ...current,
       [key]: value,
     }));
   }
 
-  function nextStep() {
-    setStep((current) => Math.min(current + 1, steps.length - 1));
-  }
+  function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  function prevStep() {
-    setStep((current) => Math.max(current - 1, 0));
+    if (!file.type.startsWith("image/")) {
+      alert("File harus berupa gambar.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 5MB.");
+      return;
+    }
+
+    if (artworkUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(artworkUrl);
+    }
+
+    setArtworkUrl(URL.createObjectURL(file));
+    event.target.value = "";
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.45em] text-[#e6bd67]">
-          Hazel Studio
-        </p>
-        <h1 className="text-3xl font-bold sm:text-4xl">
-          Custom Jersey Fitting Wizard
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-          Ikuti langkah bertahap untuk membuat anatomy preview, memilih model jersey,
-          mengunggah desain, lalu checkout ke keranjang.
-        </p>
+    <section className="mx-auto w-full max-w-[1500px] px-6 py-5">
+      <div className="mb-4 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => setStep("body")}
+          className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${
+            step === "body"
+              ? "border-[#d8b36d] bg-[#d8b36d] text-black"
+              : "border-white/15 text-white hover:bg-white/10"
+          }`}
+        >
+          1. Body Measurement
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStep("jersey")}
+          className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${
+            step === "jersey"
+              ? "border-[#d8b36d] bg-[#d8b36d] text-black"
+              : "border-white/15 text-white hover:bg-white/10"
+          }`}
+        >
+          2. Jersey Customizer
+        </button>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-2 rounded-3xl border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-4 lg:grid-cols-8">
-        {steps.map((label, index) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setStep(index)}
-            className={[
-              "rounded-2xl px-3 py-3 text-left text-xs transition",
-              index === step
-                ? "bg-[#e6bd67] text-black"
-                : index < step
-                  ? "bg-white/10 text-white"
-                  : "bg-black text-zinc-500",
-            ].join(" ")}
-          >
-            <span className="block font-bold">Step {index + 1}</span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
+      {step === "body" ? (
+        <div className="grid gap-5 xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-5 min-w-0">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+              Generate User Anatomy
+            </p>
 
-      <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-3xl border border-white/10 bg-black/80 p-6 shadow-2xl">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.45em] text-[#e6bd67]">
-            Step {step + 1}
-          </p>
+            <h2 className="mt-3 text-3xl font-semibold text-white">
+              Input ukuran tubuh user
+            </h2>
 
-          {step === 0 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Pilih gender avatar</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Pilih avatar awal. Nanti model pria dan wanita bisa memakai GLB berbeda.
-              </p>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
+              Data ini dipakai untuk membuat preview anatomi tubuh, rekomendasi
+              size, dan catatan pola jersey sebelum masuk ke desain.
+            </p>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setGender("male")}
-                  className={[
-                    "rounded-2xl border p-6 text-left transition",
-                    gender === "male"
-                      ? "border-[#e6bd67] bg-[#e6bd67]/15"
-                      : "border-white/10 bg-white/[0.03]",
-                  ].join(" ")}
-                >
-                  <span className="block text-xl font-bold">Pria</span>
-                  <span className="mt-2 block text-sm text-zinc-400">
-                    Avatar mannequin pria untuk jersey fitting.
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGender("female")}
-                  className={[
-                    "rounded-2xl border p-6 text-left transition",
-                    gender === "female"
-                      ? "border-[#e6bd67] bg-[#e6bd67]/15"
-                      : "border-white/10 bg-white/[0.03]",
-                  ].join(" ")}
-                >
-                  <span className="block text-xl font-bold">Wanita</span>
-                  <span className="mt-2 block text-sm text-zinc-400">
-                    Avatar mannequin wanita untuk jersey fitting.
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 1 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Input tinggi & berat</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Data ini dipakai untuk menyesuaikan tinggi avatar dan body mass.
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label="Tinggi badan"
-                  value={measurements.height}
-                  min={130}
-                  max={210}
-                  onChange={(value) => updateMeasurement("height", value)}
-                />
-                <Field
-                  label="Berat badan"
-                  value={measurements.weight}
-                  min={35}
-                  max={160}
-                  suffix="kg"
-                  onChange={(value) => updateMeasurement("weight", value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Input ukuran tubuh utama</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Isi ukuran tubuh utama saja. Detail pola jersey akan diproses di tahap berikutnya.
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label="Lingkar leher"
-                  value={measurements.neck}
-                  min={30}
-                  max={55}
-                  onChange={(value) => updateMeasurement("neck", value)}
-                />
-                <Field
-                  label="Lingkar dada"
-                  value={measurements.chest}
-                  min={70}
-                  max={140}
-                  onChange={(value) => updateMeasurement("chest", value)}
-                />
-                <Field
-                  label="Lingkar perut"
-                  value={measurements.waist}
-                  min={60}
-                  max={160}
-                  onChange={(value) => updateMeasurement("waist", value)}
-                />
-                <Field
-                  label="Lingkar lengan"
-                  value={measurements.arm}
-                  min={20}
-                  max={60}
-                  onChange={(value) => updateMeasurement("arm", value)}
-                />
-                <Field
-                  label="Panjang lengan"
-                  value={measurements.sleeveLength}
-                  min={15}
-                  max={70}
-                  onChange={(value) => updateMeasurement("sleeveLength", value)}
-                />
-              </div>
-
-              {measurements.waist > measurements.chest && (
-                <div className="mt-5 rounded-2xl border border-[#e6bd67]/40 bg-[#e6bd67]/10 p-4 text-sm text-[#e6bd67]">
-                  Lingkar perut lebih besar dari lingkar dada. Preview akan dibuat dengan bentuk belly/perut lebih menonjol.
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Preview fitting</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Cek rekomendasi size dan catatan fitting sebelum memilih model jersey.
-              </p>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="text-sm text-zinc-400">Recommended Size</p>
-                <p className="mt-1 text-4xl font-black">{recommendedSize}</p>
-                <ul className="mt-5 space-y-2 text-sm text-zinc-300">
-                  {fittingNotes.map((note) => (
-                    <li key={note}>• {note}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Pilih model jersey</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Pilih model dasar jersey yang akan digenerate ke badan avatar.
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setJerseyType("short-sleeve")}
-                  className={[
-                    "rounded-2xl border p-6 text-left transition",
-                    jerseyType === "short-sleeve"
-                      ? "border-[#e6bd67] bg-[#e6bd67]/15"
-                      : "border-white/10 bg-white/[0.03]",
-                  ].join(" ")}
-                >
-                  <span className="block text-xl font-bold">Lengan Pendek</span>
-                  <span className="mt-2 block text-sm text-zinc-400">
-                    Cocok untuk cycling jersey reguler.
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setJerseyType("long-sleeve")}
-                  className={[
-                    "rounded-2xl border p-6 text-left transition",
-                    jerseyType === "long-sleeve"
-                      ? "border-[#e6bd67] bg-[#e6bd67]/15"
-                      : "border-white/10 bg-white/[0.03]",
-                  ].join(" ")}
-                >
-                  <span className="block text-xl font-bold">Lengan Panjang</span>
-                  <span className="mt-2 block text-sm text-zinc-400">
-                    Cocok untuk kebutuhan full sleeve.
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Generate jersey ke badan</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Tahap ini menyiapkan model jersey ke avatar. Untuk MVP awal, status generate ditandai dulu.
-              </p>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="text-sm text-zinc-400">Model dipilih</p>
-                <p className="mt-1 text-2xl font-bold">
-                  {jerseyType === "short-sleeve" ? "Jersey Lengan Pendek" : "Jersey Lengan Panjang"}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => setGenerated(true)}
-                  className="mt-5 rounded-full bg-[#e6bd67] px-6 py-3 font-bold text-black transition hover:bg-[#f4d58a]"
-                >
-                  Generate Jersey
-                </button>
-
-                {generated && (
-                  <p className="mt-4 text-sm text-[#e6bd67]">
-                    Jersey berhasil digenerate ke preview. Tahap berikutnya upload desain sendiri.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {step === 6 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Upload gambar / desain sendiri</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Upload logo, motif, sponsor, atau desain yang akan ditempel ke jersey.
-              </p>
-
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(event) => setUploadedFiles(Array.from(event.target.files ?? []))}
-                className="w-full rounded-2xl border border-white/10 bg-black p-4 text-sm text-zinc-300"
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <MeasurementInput
+                label="Tinggi badan"
+                unit="cm"
+                value={body.height}
+                onChange={(value) => updateBody("height", value)}
               />
 
-              <div className="mt-5 space-y-2">
-                {uploadedFiles.length === 0 ? (
-                  <p className="text-sm text-zinc-500">Belum ada file desain yang diupload.</p>
-                ) : (
-                  uploadedFiles.map((file) => (
-                    <p key={file.name} className="rounded-xl bg-white/[0.05] px-4 py-3 text-sm text-zinc-300">
-                      {file.name}
-                    </p>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+              <MeasurementInput
+                label="Berat badan"
+                unit="kg"
+                value={body.weight}
+                onChange={(value) => updateBody("weight", value)}
+              />
 
-          {step === 7 && (
-            <div>
-              <h2 className="mb-3 text-2xl font-bold">Checkout ke keranjang</h2>
-              <p className="mb-6 text-sm leading-6 text-zinc-400">
-                Desain terakhir akan disimpan sebagai snapshot view depan, samping kiri, belakang, dan samping kanan.
+              <MeasurementInput
+                label="Lingkar dada"
+                unit="cm"
+                value={body.chest}
+                onChange={(value) => updateBody("chest", value)}
+              />
+
+              <MeasurementInput
+                label="Lingkar perut"
+                unit="cm"
+                value={body.waist}
+                onChange={(value) => updateBody("waist", value)}
+              />
+
+              <MeasurementInput
+                label="Panjang kerah sampai ujung bawah jersey"
+                unit="cm"
+                value={body.frontLength}
+                onChange={(value) => updateBody("frontLength", value)}
+              />
+
+              <MeasurementInput
+                label="Panjang jersey bagian belakang"
+                unit="cm"
+                value={body.backLength}
+                onChange={(value) => updateBody("backLength", value)}
+              />
+
+              <MeasurementInput
+                label="Lingkar lengan"
+                unit="cm"
+                value={body.armCircumference}
+                onChange={(value) => updateBody("armCircumference", value)}
+              />
+
+              <MeasurementInput
+                label="Panjang lengan"
+                unit="cm"
+                value={body.sleeveLength}
+                onChange={(value) => updateBody("sleeveLength", value)}
+              />
+
+              <MeasurementInput
+                label="Lingkar leher"
+                unit="cm"
+                value={body.neck}
+                onChange={(value) => updateBody("neck", value)}
+              />
+
+              <MeasurementInput
+                label="Panjang saku"
+                unit="cm"
+                value={body.pocketLength}
+                onChange={(value) => updateBody("pocketLength", value)}
+              />
+
+              <label className="text-sm font-medium text-zinc-300 sm:col-span-2">
+                Fit Preference
+                <select
+                  value={fit}
+                  onChange={(event) => setFit(event.target.value as FitPreference)}
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
+                >
+                  <option value="slim">Slim Fit</option>
+                  <option value="regular">Regular Fit</option>
+                  <option value="relaxed">Relaxed Fit</option>
+                </select>
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setStep("jersey")}
+              className="mt-4 rounded-full bg-[#d8b36d] px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
+            >
+              Continue to Jersey Design
+            </button>
+          </div>
+
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5 min-w-0">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+              Body Anatomy Preview
+            </p>
+
+            <GLBBodyAvatar
+              body={body}
+              fit={fit}
+              recommendedSize={recommendedSize}
+            />
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
+              <p className="text-sm text-zinc-400">Recommended Size</p>
+              <p className="mt-1 text-3xl font-black text-white">
+                {recommendedSize}
               </p>
 
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-300">
-                <p><span className="text-zinc-500">Gender:</span> {gender === "male" ? "Pria" : "Wanita"}</p>
-                <p><span className="text-zinc-500">Size:</span> {recommendedSize}</p>
-                <p><span className="text-zinc-500">Model:</span> {jerseyType === "short-sleeve" ? "Lengan Pendek" : "Lengan Panjang"}</p>
-                <p><span className="text-zinc-500">File desain:</span> {uploadedFiles.length} file</p>
+              <div className="mt-3 space-y-2">
+                {fitNotes.map((note) => (
+                  <p key={note} className="text-xs leading-5 text-zinc-400">
+                    • {note}
+                  </p>
+                ))}
               </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-[minmax(680px,0.98fr)_minmax(640px,1.02fr)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+              Jersey Customizer
+            </p>
+
+            <h2 className="mt-3 text-3xl font-semibold text-white">
+              Custom jersey preview
+            </h2>
+
+            <div className="mt-6 rounded-2xl border border-[#d8b36d]/25 bg-[#d8b36d]/10 p-4 text-sm leading-7 text-[#f1d7a2]">
+              Size recommendation: <strong>{recommendedSize}</strong> · Fit:{" "}
+              <strong>{fit}</strong>
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <label className="text-xs font-medium text-zinc-300">
+                Player Name
+                <input
+                  value={playerName}
+                  onChange={(event) =>
+                    setPlayerName(event.target.value.toUpperCase())
+                  }
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
+                />
+              </label>
+
+              <label className="text-xs font-medium text-zinc-300">
+                Number
+                <input
+                  value={playerNumber}
+                  onChange={(event) => setPlayerNumber(event.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <ColorInput label="Main Color" value={mainColor} onChange={setMainColor} />
+              <ColorInput label="Accent" value={accentColor} onChange={setAccentColor} />
+              <ColorInput label="Secondary" value={secondColor} onChange={setSecondColor} />
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleUpload}
+                className="hidden"
+              />
 
               <button
                 type="button"
-                className="mt-5 rounded-full bg-[#e6bd67] px-6 py-3 font-bold text-black transition hover:bg-[#f4d58a]"
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-full bg-[#d8b36d] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#e8c47a]"
               >
-                Checkout ke Keranjang
+                Upload Design
               </button>
+
+              {artworkUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setArtworkUrl("")}
+                  className="rounded-full border border-red-500/30 px-6 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+                >
+                  Remove Design
+                </button>
+              ) : null}
+
+              <a
+                href={`https://wa.me/?text=${whatsappText}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Submit Custom Order
+              </a>
             </div>
-          )}
+          </div>
 
-          <div className="mt-8 flex items-center justify-between gap-3 border-t border-white/10 pt-5">
-            <button
-              type="button"
-              onClick={prevStep}
-              disabled={step === 0}
-              className="rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Back
-            </button>
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] to-black p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.35em] text-[#d8b36d]">
+                Live Preview
+              </p>
 
-            <button
-              type="button"
-              onClick={nextStep}
-              disabled={step === steps.length - 1}
-              className="rounded-full bg-[#e6bd67] px-6 py-3 text-sm font-bold text-black transition hover:bg-[#f4d58a] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Continue
-            </button>
+              <div className="flex flex-wrap gap-2">
+                {(["front", "back", "left", "right"] as ViewMode[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setView(item)}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold capitalize transition ${
+                      view === item
+                        ? "border-[#d8b36d] bg-[#d8b36d] text-black"
+                        : "border-white/15 text-zinc-300 hover:bg-white/10"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 flex min-h-[620px] items-center justify-center rounded-[28px] border border-white/10 bg-black/60 p-8 [perspective:1200px]">
+              <div
+                className="relative h-[520px] w-[330px] transition-transform duration-700 [transform-style:preserve-3d]"
+                style={{ transform: viewRotation[view] }}
+              >
+                <JerseyFace
+                  side="front"
+                  mainColor={mainColor}
+                  accentColor={accentColor}
+                  secondColor={secondColor}
+                  artworkUrl={artworkUrl}
+                  playerName={playerName}
+                  playerNumber={playerNumber}
+                />
+
+                <JerseyFace
+                  side="back"
+                  mainColor={mainColor}
+                  accentColor={accentColor}
+                  secondColor={secondColor}
+                  artworkUrl=""
+                  playerName={playerName}
+                  playerNumber={playerNumber}
+                />
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="rounded-3xl border border-white/10 bg-black/80 p-6 shadow-2xl">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.45em] text-[#e6bd67]">
-                Body Anatomy Preview
-              </p>
-              <p className="mt-2 text-sm text-zinc-400">
-                Gender: {gender === "male" ? "Pria" : "Wanita"} · Size {recommendedSize}
-              </p>
-            </div>
-            <span className="rounded-full border border-[#e6bd67]/40 px-4 py-2 text-xs font-bold text-[#e6bd67]">
-              Step {step + 1}/8
-            </span>
-          </div>
-
-          <AvatarPreview
-            dimensions={avatarDimensions}
-            recommendedSize={recommendedSize}
-            sizeRecommendation={recommendedSize}
-            gender={gender}
-            jerseyType={jerseyType}
-            generated={generated}
-          />
-
-          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-sm text-zinc-400">Current Input Summary</p>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-zinc-300 sm:grid-cols-3">
-              <p>Tinggi: {measurements.height} cm</p>
-              <p>Berat: {measurements.weight} kg</p>
-              <p>Dada: {measurements.chest} cm</p>
-              <p>Perut: {measurements.waist} cm</p>
-              <p>Lengan: {measurements.arm} cm</p>
-              <p>Leher: {measurements.neck} cm</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </section>
+  );
+}
+
+function MeasurementInput({
+  label,
+  value,
+  unit = "cm",
+  onChange,
+}: {
+  label: string;
+  unit?: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-xs font-medium text-zinc-300">
+      {label} <span className="text-zinc-500">({unit})</span>
+      <input
+        type="number"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-white outline-none"
+      />
+    </label>
+  );
+}
+
+function ColorInput({
+  label,
+  value,
+  unit = "cm",
+  onChange,
+}: {
+  label: string;
+  unit?: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-xs font-medium text-zinc-300">
+      {label}
+      <input
+        type="color"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black"
+      />
+    </label>
+  );
+}
+
+function JerseyFace({
+  side,
+  mainColor,
+  accentColor,
+  secondColor,
+  artworkUrl,
+  playerName,
+  playerNumber,
+}: {
+  side: "front" | "back";
+  mainColor: string;
+  accentColor: string;
+  secondColor: string;
+  artworkUrl: string;
+  playerName: string;
+  playerNumber: string;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 rounded-[42px] border border-white/15 shadow-2xl [backface-visibility:hidden] ${
+        side === "back" ? "[transform:rotateY(180deg)]" : ""
+      }`}
+      style={{
+        background:
+          side === "front"
+            ? `
+              radial-gradient(circle at 50% 18%, ${accentColor} 0 7%, transparent 8%),
+              linear-gradient(135deg, transparent 0 20%, ${secondColor} 21% 34%, transparent 35%),
+              linear-gradient(225deg, transparent 0 18%, ${accentColor} 19% 28%, transparent 29%),
+              ${mainColor}
+            `
+            : `
+              linear-gradient(45deg, transparent 0 20%, ${accentColor} 21% 28%, transparent 29%),
+              linear-gradient(315deg, transparent 0 18%, ${secondColor} 19% 33%, transparent 34%),
+              ${mainColor}
+            `,
+        clipPath:
+          "polygon(28% 0, 72% 0, 94% 18%, 86% 42%, 76% 38%, 76% 100%, 24% 100%, 24% 38%, 14% 42%, 6% 18%)",
+      }}
+    >
+      {artworkUrl ? (
+        <img
+          src={artworkUrl}
+          alt="Uploaded jersey artwork"
+          className="absolute inset-x-[13%] top-[28%] h-[38%] w-[74%] rounded-2xl object-cover opacity-80 mix-blend-screen"
+        />
+      ) : null}
+
+      <div className="absolute left-1/2 top-[12%] h-16 w-24 -translate-x-1/2 rounded-b-full border-b-4 border-black/60 bg-black/40" />
+
+      <div className="absolute inset-x-0 top-[42%] text-center">
+        <p className="text-3xl font-black tracking-[0.08em] text-white drop-shadow-lg">
+          {playerName || "HAZEL"}
+        </p>
+        <p className="mt-4 text-7xl font-black text-white/95 drop-shadow-lg">
+          {playerNumber || "07"}
+        </p>
+      </div>
+
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.35em] text-white/70">
+        {side === "front" ? "Hazel Apparel" : "Custom Teamwear"}
+      </div>
+    </div>
   );
 }
