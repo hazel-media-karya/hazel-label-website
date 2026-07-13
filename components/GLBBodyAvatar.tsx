@@ -105,18 +105,35 @@ function getBodyMassAmount(heightCm: number, weightKg: number) {
 
   const bmi = weightKg / (heightM * heightM);
 
-  // BMI 22 = normal, BMI 34 = besar. Dibuat responsif untuk preview fitting.
-  return clamp((bmi - 22) / (34 - 22), 0, 1);
+  // Dibuat lebih responsif:
+  // BMI 19-21 = ramping/normal
+  // BMI 32 ke atas = body mass besar
+  return clamp((bmi - 20) / (32 - 20), 0, 1);
 }
+
+
 
 function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
 
-  const chestAmount = getMorphAmount(dimensions.chest, 88, 115) * 0.75;
-  const bellyAmount = getMorphAmount(dimensions.waist, 78, 115) * 0.85;
-  const armAmount = getMorphAmount(dimensions.arm, 28, 45) * 0.65;
-  const neckAmount = getMorphAmount(dimensions.neck, 36, 50) * 0.55;
-  const bodyMassAmount = getBodyMassAmount(dimensions.height, dimensions.weight) * 0.85;
+  // Reset semua morph dulu supaya tidak ada sisa nilai lama.
+  mesh.morphTargetInfluences.fill(0);
+
+  const bodyMass = getBodyMassAmount(dimensions.height, dimensions.weight);
+
+  // Mapping lebih kuat supaya preview benar-benar mengikuti data input.
+  // Nilai lingkar tubuh dibuat berdasarkan ukuran umum jersey dewasa.
+  const chestFromMeasure = getMorphAmount(dimensions.chest, 86, 112);
+  const bellyFromMeasure = getMorphAmount(dimensions.waist, 74, 112);
+  const armFromMeasure = getMorphAmount(dimensions.arm, 26, 42);
+  const neckFromMeasure = getMorphAmount(dimensions.neck, 34, 46);
+
+  // Berat badan tidak hanya ke body_mass, tapi ikut sedikit memengaruhi area lain.
+  const chestAmount = clamp(Math.max(chestFromMeasure * 0.95, bodyMass * 0.35), 0, 1);
+  const bellyAmount = clamp(Math.max(bellyFromMeasure * 1.0, bodyMass * 0.55), 0, 1);
+  const armAmount = clamp(Math.max(armFromMeasure * 0.85, bodyMass * 0.35), 0, 1);
+  const neckAmount = clamp(Math.max(neckFromMeasure * 0.75, bodyMass * 0.22), 0, 1);
+  const bodyMassAmount = clamp(bodyMass * 0.85, 0, 1);
 
   Object.entries(mesh.morphTargetDictionary).forEach(([name, index]) => {
     const morphName = normalizeName(name);
@@ -137,7 +154,7 @@ function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
       mesh.morphTargetInfluences![index] = neckAmount;
     }
 
-    if (includesAny(morphName, ["bodymass", "body_mass", "mass", "weight", "berat"])) {
+    if (includesAny(morphName, ["bodymass", "body_mass", "body", "mass", "weight", "berat"])) {
       mesh.morphTargetInfluences![index] = bodyMassAmount;
     }
   });
@@ -156,8 +173,9 @@ function applyMeasurementTransforms(
 
   const baseScale = object.userData.baseScale as THREE.Vector3;
 
-  // Tinggi badan hanya mengubah tinggi avatar, bukan lebar badan.
-  const heightScale = clamp(dimensions.height / 170, 0.82, 1.18);
+  // Tinggi badan hanya mengubah tinggi avatar.
+  // Lebar/gemuk ditangani oleh morph target body_mass, chest, belly, arm, neck.
+  const heightScale = clamp(dimensions.height / 170, 0.78, 1.22);
 
   object.scale.set(
     baseScale.x,
