@@ -758,7 +758,6 @@ Warna kedua: ${secondColor}`
       </div>
     </section>
   );
-  );
 }
 
 function MeasurementInput({
