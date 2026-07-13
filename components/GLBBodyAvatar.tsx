@@ -105,34 +105,49 @@ function getBodyMassAmount(heightCm: number, weightKg: number) {
 
   const bmi = weightKg / (heightM * heightM);
 
-  // Dibuat lebih responsif:
-  // BMI 19-21 = ramping/normal
-  // BMI 32 ke atas = body mass besar
   return clamp((bmi - 20) / (32 - 20), 0, 1);
 }
+
+function getBellyDominance(chest: number, waist: number) {
+  if (!Number.isFinite(chest) || !Number.isFinite(waist)) return 0;
+
+  // Kunci fitting:
+  // jika lingkar perut lebih besar dari lingkar dada, avatar harus tampak buncit.
+  return clamp((waist - chest) / 35, 0, 1);
+}
+
+
 
 
 
 function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
 
-  // Reset semua morph dulu supaya tidak ada sisa nilai lama.
   mesh.morphTargetInfluences.fill(0);
 
   const bodyMass = getBodyMassAmount(dimensions.height, dimensions.weight);
+  const bellyDominance = getBellyDominance(dimensions.chest, dimensions.waist);
 
-  // Mapping lebih kuat supaya preview benar-benar mengikuti data input.
-  // Nilai lingkar tubuh dibuat berdasarkan ukuran umum jersey dewasa.
   const chestFromMeasure = getMorphAmount(dimensions.chest, 86, 112);
   const bellyFromMeasure = getMorphAmount(dimensions.waist, 74, 112);
   const armFromMeasure = getMorphAmount(dimensions.arm, 26, 42);
   const neckFromMeasure = getMorphAmount(dimensions.neck, 34, 46);
 
-  // Berat badan tidak hanya ke body_mass, tapi ikut sedikit memengaruhi area lain.
-  const chestAmount = clamp(Math.max(chestFromMeasure * 0.95, bodyMass * 0.35), 0, 1);
-  const bellyAmount = clamp(Math.max(bellyFromMeasure * 1.0, bodyMass * 0.55), 0, 1);
-  const armAmount = clamp(Math.max(armFromMeasure * 0.85, bodyMass * 0.35), 0, 1);
-  const neckAmount = clamp(Math.max(neckFromMeasure * 0.75, bodyMass * 0.22), 0, 1);
+  const chestAmount = clamp(Math.max(chestFromMeasure * 0.85, bodyMass * 0.30), 0, 1);
+
+  // Perut dibuat dominan jika waist > chest.
+  const bellyAmount = clamp(
+    Math.max(
+      bellyFromMeasure * 0.55,
+      bellyDominance * 1.0,
+      bodyMass * 0.45
+    ),
+    0,
+    1
+  );
+
+  const armAmount = clamp(Math.max(armFromMeasure * 0.80, bodyMass * 0.30), 0, 1);
+  const neckAmount = clamp(Math.max(neckFromMeasure * 0.65, bodyMass * 0.18), 0, 1);
   const bodyMassAmount = clamp(bodyMass * 0.85, 0, 1);
 
   Object.entries(mesh.morphTargetDictionary).forEach(([name, index]) => {
