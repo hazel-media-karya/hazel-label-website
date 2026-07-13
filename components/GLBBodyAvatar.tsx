@@ -195,14 +195,26 @@ function applyMeasurementTransforms(
 
   const baseScale = object.userData.baseScale as THREE.Vector3;
 
-  // Tinggi badan hanya mengubah tinggi avatar.
-  // Lebar/gemuk ditangani oleh morph target body_mass, chest, belly, arm, neck.
   const heightScale = clamp(dimensions.height / 170, 0.78, 1.22);
 
+  const heightM = dimensions.height / 100;
+  const bmi =
+    heightM > 0 && dimensions.weight > 0
+      ? dimensions.weight / (heightM * heightM)
+      : 22;
+
+  // BMI 22 normal, BMI 40+ sangat besar.
+  const massAmount = clamp((bmi - 22) / (40 - 22), 0, 1);
+
+  // Berat badan harus terlihat secara visual:
+  // X = lebar kiri-kanan, Z = tebal depan-belakang.
+  const widthScale = 1 + massAmount * 0.36;
+  const depthScale = 1 + massAmount * 0.42;
+
   object.scale.set(
-    baseScale.x,
+    baseScale.x * widthScale,
     baseScale.y * heightScale,
-    baseScale.z
+    baseScale.z * depthScale
   );
 }
 
