@@ -195,26 +195,36 @@ function applyMeasurementTransforms(
 
   const baseScale = object.userData.baseScale as THREE.Vector3;
 
-  const heightScale = clamp(dimensions.height / 170, 0.78, 1.22);
+  const height = dimensions.height || 170;
+  const weight = dimensions.weight || 65;
+  const heightM = height / 100;
 
-  const heightM = dimensions.height / 100;
-  const bmi =
-    heightM > 0 && dimensions.weight > 0
-      ? dimensions.weight / (heightM * heightM)
-      : 22;
+  const bmi = heightM > 0 ? weight / (heightM * heightM) : 22;
 
-  // BMI 22 normal, BMI 40+ sangat besar.
-  const massAmount = clamp((bmi - 22) / (40 - 22), 0, 1);
+  // BMI Visualizer-style manual body preview:
+  // 18-22 = slim/normal
+  // 25-30 = overweight
+  // 30-35 = obese ringan
+  // 35+   = body mass harus terlihat jelas besar
+  const massAmount = clamp((bmi - 21) / (35 - 21), 0, 1);
 
-  // Berat badan harus terlihat secara visual:
-  // X = lebar kiri-kanan, Z = tebal depan-belakang.
-  const widthScale = 1 + massAmount * 0.36;
-  const depthScale = 1 + massAmount * 0.42;
+  // Tinggi hanya mengubah sumbu vertikal.
+  const heightScale = clamp(height / 170, 0.78, 1.22);
+
+  // Berat/BMI harus terlihat kuat secara visual.
+  // X = lebar kiri-kanan
+  // Z = tebal depan-belakang
+  // Untuk BMI sekitar 35, avatar harus terlihat jauh lebih besar.
+  const widthScale = 1 + massAmount * 0.52;
+  const depthScale = 1 + massAmount * 0.72;
+
+  // Sedikit kompensasi agar avatar pendek-berat terlihat lebih padat.
+  const shortHeavyBoost = height < 170 && bmi >= 30 ? 1.06 : 1;
 
   object.scale.set(
-    baseScale.x * widthScale,
+    baseScale.x * widthScale * shortHeavyBoost,
     baseScale.y * heightScale,
-    baseScale.z * depthScale
+    baseScale.z * depthScale * shortHeavyBoost
   );
 }
 
