@@ -182,6 +182,175 @@ function applyMorphTargets(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
   });
 }
 
+const BMI_FRONT_SIGN = 1;
+
+function smoothStep(edge0: number, edge1: number, value: number) {
+  if (edge0 === edge1) return 1;
+
+  const x = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return x * x * (3 - 2 * x);
+}
+
+function bellCurve(value: number, center: number, width: number) {
+  const distance = (value - center) / width;
+  return Math.exp(-0.5 * distance * distance);
+}
+
+function getBmiAmount(heightCm: number, weightKg: number) {
+  const heightM = heightCm / 100;
+  if (!heightM || !weightKg) return 0;
+
+  const bmi = weightKg / (heightM * heightM);
+
+  // 21 = normal, 35 = sudah harus terlihat besar.
+  return clamp((bmi - 21) / (35 - 21), 0, 1);
+}
+
+function applyBmiVertexDeformation(mesh: THREE.Mesh, dimensions: AvatarDimensions) {
+  const geometry = mesh.geometry as THREE.BufferGeometry;
+  const position = geometry.getAttribute("position") as THREE.BufferAttribute | undefined;
+
+  if (!position) return;
+
+  if (!geometry.userData.hazelOriginalPositions) {
+    const clonedGeometry = geometry.clone();
+    mesh.geometry = clonedGeometry;
+
+    const clonedPosition = clonedGeometry.getAttribute("position") as THREE.BufferAttribute;
+    const originalPositions = new Float32Array(clonedPosition.array as ArrayLike<number>);
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+
+    for (let i = 0; i < clonedPosition.count; i += 1) {
+      const x = originalPositions[i * 3];
+      const y = originalPositions[i * 3 + 1];
+      const z = originalPositions[i * 3 + 2];
+
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
+    }
+
+    clonedGeometry.userData.hazelOriginalPositions = originalPositions;
+    clonedGeometry.userData.hazelBounds = {
+      minX,
+      maxX,
+      minY,
+      maxY,
+      minZ,
+      maxZ,
+      centerX: (minX + maxX) / 2,
+      centerY: (minY + maxY) / 2,
+      centerZ: (minZ + maxZ) / 2,
+      width: maxX - minX || 1,
+      height: maxY - minY || 1,
+      depth: maxZ - minZ || 1,
+    };
+  }
+
+  const activeGeometry = mesh.geometry as THREE.BufferGeometry;
+  const activePosition = activeGeometry.getAttribute("position") as THREE.BufferAttribute;
+  const originalPositions = activeGeometry.userData.hazelOriginalPositions as Float32Array;
+  const bounds = activeGeometry.userData.hazelBounds as {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+    minZ: number;
+    maxZ: number;
+    centerX: number;
+    centerY: number;
+    centerZ: number;
+    width: number;
+    height: number;
+    depth: number;
+  };
+
+  const height = dimensions.height || 170;
+  const weight = dimensions.weight || 65;
+  const mass = getBmiAmount(height, weight);
+
+  // Untuk data 167 cm / 98 kg, mass hampir 1.
+  // Jadi torso, perut, paha, dan lengan harus terlihat jauh lebih besar.
+  for (let i = 0; i < activePosition.count; i += 1) {
+    const ox = originalPositions[i * 3];
+    const oy = originalPositions[i * 3 + 1];
+    const oz = originalPositions[i * 3 + 2];
+
+    const yNorm = (oy - bounds.minY) / bounds.height;
+    const xNorm = (ox - bounds.centerX) / (bounds.width / 2);
+    const zNorm = (oz - bounds.centerZ) / (bounds.depth / 2);
+    const sideAbs = Math.abs(xNorm);
+
+    let x = ox;
+    let y = oy;
+    let z = oz;
+
+    // Lock kepala/wajah agar tidak ikut gendut.
+    const headLock = yNorm > 0.74;
+
+    if (!headLock) {
+      const torsoBand = bellCurve(yNorm, 0.52, 0.16);
+      const bellyBand = bellCurve(yNorm, 0.43, 0.11);
+      const hipBand = bellCurve(yNorm, 0.33, 0.10);
+      const thighBand = bellCurve(yNorm, 0.20, 0.11);
+      const armBand =
+        smoothStep(0.36, 0.48, yNorm) *
+        (1 - smoothStep(0.68, 0.78, yNorm)) *
+        smoothStep(0.38, 0.72, sideAbs);
+
+      // Global body mass, tapi hanya area badan.
+      const bodyWidthScale =
+        1 +
+        mass *
+          (
+            torsoBand * 0.28 +
+            bellyBand * 0.36 +
+            hipBand * 0.22 +
+            thighBand * 0.16 +
+            armBand * 0.20
+          );
+
+      const bodyDepthScale =
+        1 +
+        mass *
+          (
+            torsoBand * 0.30 +
+            bellyBand * 0.58 +
+            hipBand * 0.22 +
+            thighBand * 0.12 +
+            armBand * 0.14
+          );
+
+      x = bounds.centerX + (x - bounds.centerX) * bodyWidthScale;
+      z = bounds.centerZ + (z - bounds.centerZ) * bodyDepthScale;
+
+      // Dorong perut ke depan supaya tidak hanya melebar.
+      const frontMask = clamp((BMI_FRONT_SIGN * zNorm + 0.2) / 1.2, 0, 1);
+      const bellyForward = mass * bellyBand * frontMask * bounds.depth * 0.28;
+      z += BMI_FRONT_SIGN * bellyForward;
+
+      // Sedikit isi ke pinggang bawah/paha.
+      const lowerBodyWidth = mass * (hipBand * 0.10 + thighBand * 0.10);
+      x = bounds.centerX + (x - bounds.centerX) * (1 + lowerBodyWidth);
+    }
+
+    activePosition.setXYZ(i, x, y, z);
+  }
+
+  activePosition.needsUpdate = true;
+  activeGeometry.computeVertexNormals();
+  activeGeometry.computeBoundingSphere();
+}
+
 function applyMeasurementTransforms(
   object: THREE.Object3D,
   originalsOrDimensions: unknown,
@@ -196,36 +365,23 @@ function applyMeasurementTransforms(
   const baseScale = object.userData.baseScale as THREE.Vector3;
 
   const height = dimensions.height || 170;
-  const weight = dimensions.weight || 65;
-  const heightM = height / 100;
 
-  const bmi = heightM > 0 ? weight / (heightM * heightM) : 22;
-
-  // BMI Visualizer-style manual body preview:
-  // 18-22 = slim/normal
-  // 25-30 = overweight
-  // 30-35 = obese ringan
-  // 35+   = body mass harus terlihat jelas besar
-  const massAmount = clamp((bmi - 21) / (35 - 21), 0, 1);
-
-  // Tinggi hanya mengubah sumbu vertikal.
+  // Tinggi tetap scale vertikal.
   const heightScale = clamp(height / 170, 0.78, 1.22);
 
-  // Berat/BMI harus terlihat kuat secara visual.
-  // X = lebar kiri-kanan
-  // Z = tebal depan-belakang
-  // Untuk BMI sekitar 35, avatar harus terlihat jauh lebih besar.
-  const widthScale = 1 + massAmount * 0.52;
-  const depthScale = 1 + massAmount * 0.72;
-
-  // Sedikit kompensasi agar avatar pendek-berat terlihat lebih padat.
-  const shortHeavyBoost = height < 170 && bmi >= 30 ? 1.06 : 1;
-
+  // Lebar/tebal tubuh tidak lagi hanya global scale.
+  // Body mass sekarang dibentuk langsung pada vertex area torso, belly, hip, thigh, arm.
   object.scale.set(
-    baseScale.x * widthScale * shortHeavyBoost,
+    baseScale.x,
     baseScale.y * heightScale,
-    baseScale.z * depthScale * shortHeavyBoost
+    baseScale.z
   );
+
+  object.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      applyBmiVertexDeformation(child, dimensions);
+    }
+  });
 }
 
 function fitCameraToModel(
